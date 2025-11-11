@@ -44,8 +44,13 @@ def get_paciente_by_id(db: Session, paciente_id: int):
     return db.query(models.Paciente).filter(models.Paciente.id == paciente_id).first()
 
 def get_agendamento_by_id(db: Session, agendamento_id: int):
-    """ Busca um agendamento no banco de dados pelo ID. """
-    return db.query(models.Agendamento).filter(models.Agendamento.id == agendamento_id).first()
+    """ 
+    Busca um agendamento no banco de dados pelo ID,
+    já incluindo (joinedload) os dados do paciente.
+    """
+    return db.query(models.Agendamento).options(
+        joinedload(models.Agendamento.paciente)
+    ).filter(models.Agendamento.id == agendamento_id).first()
 
 # ===============================================
 # ENDPOINTS DE PACIENTES
@@ -92,6 +97,30 @@ def listar_agendamentos(db: Session = Depends(get_db)):
         joinedload(models.Agendamento.paciente)
     ).all()
     return agendamentos
+
+@app.patch("/agendamentos/{agendamento_id}", response_model=schemas.Agendamento)
+def atualizar_agendamento(
+    agendamento_id: int, 
+    agendamento_update: schemas.AgendamentoUpdate, 
+    db: Session = Depends(get_db)
+):
+    """
+    Atualiza um agendamento (ex: muda data/hora).
+    Usado pelo drag-and-drop.
+    """
+    db_agendamento = get_agendamento_by_id(db, agendamento_id)
+    if not db_agendamento:
+        raise HTTPException(status_code=404, detail="Agendamento não encontrado")
+
+    update_data = agendamento_update.model_dump(exclude_unset=True)
+    
+    for key, value in update_data.items():
+        setattr(db_agendamento, key, value)
+        
+    db.commit()
+    db.refresh(db_agendamento)
+    
+    return db_agendamento
 
 @app.post("/agendamentos/{agendamento_id}/checkin", response_model=schemas.Agendamento)
 def fazer_checkin_agendamento(agendamento_id: int, db: Session = Depends(get_db)):

@@ -1,5 +1,3 @@
-# schemas.py (ATUALIZADO)
-
 from pydantic import BaseModel, computed_field
 from datetime import date, datetime
 from typing import List, Optional
@@ -32,7 +30,7 @@ class Paciente(PacienteBase):
     id: int
     
     class Config:
-        from_attributes = True
+        from_attributes = True # Permite ao Pydantic ler os modelos do SQLAlchemy
 
     @computed_field
     @property
@@ -57,10 +55,7 @@ class AgendamentoCreate(AgendamentoBase):
 class Agendamento(AgendamentoBase):
     id: int
     status: StatusAgendamento
-    
-    # --- MUDANÇA PRINCIPAL ---
-    # Agora incluímos o objeto completo do paciente na resposta
-    paciente: Paciente  
+    paciente: Paciente  # Inclui o objeto completo do paciente
 
     class Config:
         from_attributes = True
@@ -79,11 +74,16 @@ class Evolucao(EvolucaoBase):
 
     class Config:
         from_attributes = True
-        
-        # --- Dashboard ---
+
+# --- Dashboard ---
 class SessaoDashboard(BaseModel):
     nome_paciente: str
     total_sessoes: int
 
     class Config:
-        from_attributes = True # Permite ler dados do SQLAlchemy
+        from_attributes = True
+        
+        # --- Agendamento Update (para o PATCH) ---
+class AgendamentoUpdate(BaseModel):
+    data_hora_inicio: Optional[datetime] = None
+    data_hora_fim: Optional[datetime] = None

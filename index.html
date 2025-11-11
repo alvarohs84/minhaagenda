@@ -143,13 +143,12 @@
         }
         
         #lista-pacientes-tbody tr {
-            cursor: pointer; /* Faz as linhas da lista de pacientes clicáveis */
+            cursor: pointer;
         }
         #lista-pacientes-tbody tr:hover {
             background-color: #f5f5f5;
         }
         
-        /* Estilos do Histórico de Evolução */
         #historico-evolucoes-content .evolucao-item {
             border-bottom: 1px solid #eee;
             padding: 10px 0;
@@ -166,7 +165,7 @@
         #historico-evolucoes-content .evolucao-texto {
             font-size: 1em;
             margin-top: 5px;
-            white-space: pre-wrap; /* Preserva quebras de linha */
+            white-space: pre-wrap;
         }
         #loading-dashboard, #loading-historico {
             display: none;
@@ -360,8 +359,10 @@
                     day: 'Dia'
                 },
                 selectable: true,
+                editable: true, // Permite arrastar e soltar
                 select: handleSelectTime,
                 eventClick: handleEventClick,
+                eventDrop: handleEventDrop, // Função para salvar ao arrastar
                 events: `${API_URL}/agendamentos`,
                 eventDataTransform: function(apiEvent) {
                     let color = '#3788d8';
@@ -461,6 +462,37 @@
                 modalContainer.style.display = 'flex';
             }
 
+            async function handleEventDrop(dropInfo) {
+                const event = dropInfo.event;
+                const agendamentoId = event.id;
+                if (!confirm(`Mover o atendimento de "${event.title}" para ${event.start.toLocaleString('pt-BR')}?`)) {
+                    dropInfo.revert();
+                    return;
+                }
+                const updateData = {
+                    data_hora_inicio: event.start.toISOString(),
+                    data_hora_fim: event.end ? event.end.toISOString() : event.start.toISOString()
+                };
+                try {
+                    const response = await fetch(`${API_URL}/agendamentos/${agendamentoId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(updateData)
+                    });
+                    if (response.ok) {
+                        alert('Agendamento atualizado com sucesso!');
+                        calendar.refetchEvents();
+                    } else {
+                        alert('Erro ao atualizar o agendamento.');
+                        dropInfo.revert();
+                    }
+                } catch (error) {
+                    console.error('Erro de rede ao atualizar:', error);
+                    alert('Erro de conexão. A alteração será desfeita.');
+                    dropInfo.revert();
+                }
+            }
+
             // --- LÓGICA DO MODAL DE AGENDAMENTO ---
             modalAgendamentoClose.onclick = () => modalContainer.style.display = 'none';
             btnCheckin.onclick = async () => {
@@ -476,7 +508,6 @@
                     }
                 } catch (error) { console.error('Erro de rede:', error); }
             };
-            
             btnCancelar.onclick = async () => {
                 if (!confirm("Tem certeza que deseja CANCELAR este atendimento?")) { return; }
                 try {
@@ -491,7 +522,6 @@
                     }
                 } catch (error) { console.error('Erro de rede:', error); }
             };
-            
             btnSalvarEvolucao.onclick = async () => {
                 const texto = textoEvolucao.value;
                 if (!texto) { alert('O campo de evolução está vazio.'); return; }
@@ -643,7 +673,6 @@
                             <td>${paciente.nome}</td>
                             <td>${paciente.telefone}</td>
                         `;
-                        // Adiciona o evento de clique para abrir o histórico
                         tr.onclick = () => {
                             abrirHistoricoPaciente(paciente.id, paciente.nome);
                         };
@@ -654,17 +683,14 @@
             };
             modalListaPacientesClose.onclick = () => modalListaPacientesContainer.style.display = 'none';
 
-            // --- NOVO: LÓGICA DO MODAL HISTÓRICO DE EVOLUÇÕES ---
+            // --- LÓGICA DO MODAL HISTÓRICO DE EVOLUÇÕES ---
             modalHistoricoClose.onclick = () => modalHistoricoContainer.style.display = 'none';
-
             async function abrirHistoricoPaciente(pacienteId, pacienteNome) {
-                // Prepara o modal
                 historicoNomePaciente.textContent = pacienteNome;
                 loadingHistorico.style.display = 'block';
                 historicoEvolucoesContent.innerHTML = "";
                 modalHistoricoContainer.style.display = 'flex';
                 
-                // Busca os dados na API
                 try {
                     const response = await fetch(`${API_URL}/pacientes/${pacienteId}/evolucoes`);
                     if (!response.ok) {
@@ -675,7 +701,6 @@
                     if (evolucoes.length === 0) {
                         historicoEvolucoesContent.innerHTML = "<p>Nenhuma evolução registrada para este paciente.</p>";
                     } else {
-                        // Formata e exibe cada evolução
                         evolucoes.forEach(evo => {
                             const data = new Date(evo.data_criacao).toLocaleString('pt-BR');
                             const itemHTML = `
@@ -687,16 +712,13 @@
                             historicoEvolucoesContent.innerHTML += itemHTML;
                         });
                     }
-                    
                 } catch (error) {
                     console.error('Erro ao buscar histórico:', error);
                     historicoEvolucoesContent.innerHTML = "<p style='color: red;'>Erro ao carregar histórico.</p>";
                 } finally {
-                    loadingHistorico.style.display = 'none'; // Esconde "Carregando..."
+                    loadingHistorico.style.display = 'none';
                 }
             }
-            // --- FIM NOVO ---
-
 
             // (Fechar Modais ao clicar fora)
             window.onclick = (event) => {
@@ -704,7 +726,7 @@
                 if (event.target == modalPacienteContainer) modalPacienteContainer.style.display = 'none';
                 if (event.target == modalDashboardContainer) modalDashboardContainer.style.display = 'none';
                 if (event.target == modalListaPacientesContainer) modalListaPacientesContainer.style.display = 'none';
-                if (event.target == modalHistoricoContainer) modalHistoricoContainer.style.display = 'none'; // NOVO
+                if (event.target == modalHistoricoContainer) modalHistoricoContainer.style.display = 'none';
             };
         });
     </script>
