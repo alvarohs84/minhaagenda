@@ -1,219 +1,333 @@
-from fastapi import FastAPI, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, extract
-from typing import List
-from datetime import datetime
+# --- main.py ---
+# Este é um arquivo de backend completo usando FastAPI e SQLAlchemy.
+# Ele contém todas as rotas necessárias para o seu index.html funcionar.
 
-# Import para o CORS
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, Text, Enum as PyEnum
+from sqlalchemy.orm import sessionmaker, Session, relationship
+from sqlalchemy.ext.declarativa import declarative_base
+from pydantic import BaseModel
+from typing import List, Optional
+from datetime import datetime, date
 
-# Importa tudo dos nossos arquivos (sem o ponto)
-import models, schemas
-from database import engine, get_db
+# --- 1. CONFIGURAÇÃO DO BANCO DE DADOS ---
 
-# Esta linha CRIA as tabelas no seu banco de dados
-models.Base.metadata.create_all(bind=engine)
+# IMPORTANTE: Substitua pela URL do seu banco de dados do Render
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+# Exemplo para PostgreSQL (comum no Render):
+# SQLALCHEMY_DATABASE_URL = "postgresql://user:password@host/dbname"
 
-app = FastAPI(
-    title="API de Agenda de Fisioterapia",
-    version="1.0.0"
-)
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
-# Configuração do CORS
-origins = [
-    "http://localhost",
-    "http://127.0.0.1",
-    "null",
-    "https://alvarohs84.github.io"  # URL do seu frontend no GitHub Pages
-]
+# --- 2. MODELS (Definição das Tabelas do Banco) ---
 
+class Paciente(Base):
+    __tablename__ = 'pacientes'
+    id = Column(Integer, primary_key=True, index=True)
+    nome = Column(String, index=True, nullable=False)
+    telefone = Column(String, nullable=True)
+    data_nascimento = Column(DateTime, nullable=True) # Alterado para DateTime
+    sexo = Column(String, nullable=True)
+    diagnostico_medico = Column(String, nullable=True)
+    
+    agendamentos = relationship("Agendamento", back_populates="paciente", cascade="all, delete-orphan")
+    evolucoes = relationship("Evolucao", back_populates="paciente", cascade="all, delete-orphan")
+
+class Agendamento(Base):
+    __tablename__ = 'agendamentos'
+    id = Column(Integer, primary_key=True, index=True)
+    data_hora_inicio = Column(DateTime, nullable=False)
+    data_hora_fim = Column(DateTime, nullable=False)
+    status = Column(PyEnum('Agendado', 'Presente', 'Cancelado', name='status_agendamento'), default='Agendado')
+    
+    # [CORREÇÃO CRÍTICA ondelete="CASCADE"]
+    # Isso faz com que, ao deletar um Paciente, todos os seus Agendamentos
+    # sejam deletados automaticamente.
+    paciente_id = Column(Integer, ForeignKey('pacientes.id', ondelete="CASCADE"), nullable=False)
+    
+    paciente = relationship("Paciente", back_populates="agendamentos")
+    evolucao = relationship("Evolucao", uselist=False, back_populates="agendamento", cascade="all, delete-orphan")
+
+class Evolucao(Base):
+    __tablename__ = 'evolucoes'
+    id = Column(Integer, primary_key=True, index=True)
+    texto_evolucao = Column(Text, nullable=False)
+    data_criacao = Column(DateTime, default=datetime.utcnow)
+    
+    agendamento_id = Column(Integer, ForeignKey('agendamentos.id'), nullable=False)
+    paciente_id = Column(Integer, ForeignKey('pacientes.id'), nullable=False)
+    
+    agendamento = relationship("Agendamento", back_populates="evolucao")
+    paciente = relationship("Paciente", back_populates="evolucoes")
+
+# Cria as tabelas no banco de dados
+Base.metadata.create_all(bind=engine)
+
+# --- 3. SCHEMAS (Pydantic - Validação de dados da API) ---
+
+class PacienteBase(BaseModel):
+    nome: str
+    telefone: Optional[str] = None
+    data_nascimento: Optional[date] = None # Recebe como data
+    sexo: Optional[str] = None
+    diagnostico_medico: Optional[str] = None
+
+class PacienteCreate(PacienteBase):
+    pass
+
+class PacienteSchema(PacienteBase):
+    id: int
+    class Config:
+        orm_mode = True
+
+class EvolucaoCreate(BaseModel):
+    texto_evolucao: str
+
+class AgendamentoCreate(BaseModel):
+    paciente_id: int
+    data_hora_inicio: datetime
+    data_hora_fim: datetime
+
+class AgendamentoUpdate(BaseModel):
+    data_hora_inicio: datetime
+    data_hora_fim: datetime
+
+class AgendamentoSchema(BaseModel):
+    id: int
+    data_hora_inicio: datetime
+    data_hora_fim: datetime
+    status: str
+    paciente: PacienteSchema # Permite o frontend ver os dados do paciente
+    
+    class Config:
+        orm_mode = True
+
+class DashboardSessao(BaseModel):
+    nome_paciente: str
+    total_sessoes: int
+
+class EvolucaoSchema(BaseModel):
+    id: int
+    texto_evolucao: str
+    data_criacao: datetime
+    
+    class Config:
+        orm_mode = True
+
+# --- 4. INICIALIZAÇÃO DO APP E CORS ---
+
+app = FastAPI(title="Minha Agenda API")
+
+# IMPORTANTE: Configuração do CORS para permitir que seu site
+# no github.io fale com esta API no render.com
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],  # Permite todas as origens (ou restrinja para o seu github.io)
     allow_credentials=True,
-    allow_methods=["*"], # Permite todos os métodos
-    allow_headers=["*"], # Permite todos os cabeçalhos
+    allow_methods=["*"],  # Permite todos os métodos (GET, POST, DELETE, etc)
+    allow_headers=["*"],
 )
 
-# ===============================================
-# FUNÇÕES AUXILIARES (Helpers)
-# ===============================================
+# --- 5. DEPENDÊNCIAS ---
 
-def get_paciente_by_id(db: Session, paciente_id: int):
-    """ Busca um paciente no banco de dados pelo ID. """
-    return db.query(models.Paciente).filter(models.Paciente.id == paciente_id).first()
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-def get_agendamento_by_id(db: Session, agendamento_id: int):
-    """ 
-    Busca um agendamento no banco de dados pelo ID,
-    já incluindo (joinedload) os dados do paciente.
-    """
-    return db.query(models.Agendamento).options(
-        joinedload(models.Agendamento.paciente)
-    ).filter(models.Agendamento.id == agendamento_id).first()
+# --- 6. ROTAS (Endpoints da API) ---
 
-# ===============================================
-# ENDPOINTS DE PACIENTES
-# ===============================================
+# --- Rotas de PACIENTE ---
 
-@app.get("/")
-def ler_raiz():
-    return {"mensagem": "Bem-vindo à API da Agenda de Fisioterapia!"}
-
-@app.post("/pacientes", response_model=schemas.Paciente, status_code=201)
-def criar_paciente(paciente: schemas.PacienteCreate, db: Session = Depends(get_db)):
-    db_paciente = models.Paciente(**paciente.model_dump())
+@app.post("/pacientes", response_model=PacienteSchema, status_code=status.HTTP_201_CREATED)
+def criar_paciente(paciente: PacienteCreate, db: Session = Depends(get_db)):
+    # Converte data (Pydantic) para datetime (SQLAlchemy)
+    data_nasc = datetime.combine(paciente.data_nascimento, datetime.min.time()) if paciente.data_nascimento else None
+    
+    db_paciente = Paciente(
+        nome=paciente.nome,
+        telefone=paciente.telefone,
+        data_nascimento=data_nasc,
+        sexo=paciente.sexo,
+        diagnostico_medico=paciente.diagnostico_medico
+    )
     db.add(db_paciente)
     db.commit()
-    db.refresh(db_paciente) 
+    db.refresh(db_paciente)
     return db_paciente
 
-@app.get("/pacientes", response_model=List[schemas.Paciente])
+@app.get("/pacientes", response_model=List[PacienteSchema])
 def listar_pacientes(db: Session = Depends(get_db)):
-    pacientes = db.query(models.Paciente).all()
+    pacientes = db.query(Paciente).all()
     return pacientes
 
-# ===============================================
-# ENDPOINTS DE AGENDAMENTO
-# ===============================================
+@app.patch("/pacientes/{paciente_id}", response_model=PacienteSchema)
+def atualizar_paciente(paciente_id: int, paciente: PacienteCreate, db: Session = Depends(get_db)):
+    db_paciente = db.query(Paciente).filter(Paciente.id == paciente_id).first()
+    if db_paciente is None:
+        raise HTTPException(status_code=404, detail="Paciente not found")
+    
+    # Atualiza os dados
+    db_paciente.nome = paciente.nome
+    db_paciente.telefone = paciente.telefone
+    db_paciente.data_nascimento = datetime.combine(paciente.data_nascimento, datetime.min.time()) if paciente.data_nascimento else None
+    db_paciente.sexo = paciente.sexo
+    db_paciente.diagnostico_medico = paciente.diagnostico_medico
+    
+    db.commit()
+    db.refresh(db_paciente)
+    return db_paciente
 
-@app.post("/agendamentos", response_model=schemas.Agendamento, status_code=201)
-def criar_agendamento(agendamento: schemas.AgendamentoCreate, db: Session = Depends(get_db)):
-    paciente = get_paciente_by_id(db, agendamento.paciente_id)
-    if not paciente:
-        raise HTTPException(
-            status_code=404, 
-            detail=f"Paciente com ID {agendamento.paciente_id} não encontrado."
-        )
-    db_agendamento = models.Agendamento(**agendamento.model_dump())
+# [ROTA QUE ESTAVA FALTANDO]
+@app.delete("/pacientes/{paciente_id}", status_code=status.HTTP_200_OK)
+def deletar_paciente(paciente_id: int, db: Session = Depends(get_db)):
+    db_paciente = db.query(Paciente).filter(Paciente.id == paciente_id).first()
+    if db_paciente is None:
+        raise HTTPException(status_code=404, detail="Paciente not found")
+    
+    try:
+        db.delete(db_paciente)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        # Este erro acontece se você NÃO tiver o ondelete="CASCADE"
+        raise HTTPException(status_code=400, detail=f"Erro ao deletar: Este paciente pode ter agendamentos. {e}")
+        
+    return {"detail": "Paciente deletado com sucesso"}
+
+# --- Rotas de AGENDAMENTO ---
+
+@app.get("/agendamentos", response_model=List[AgendamentoSchema])
+def listar_agendamentos(db: Session = Depends(get_db)):
+    agendamentos = db.query(Agendamento).all()
+    return agendamentos
+
+@app.post("/agendamentos", response_model=AgendamentoSchema, status_code=status.HTTP_201_CREATED)
+def criar_agendamento(agendamento: AgendamentoCreate, db: Session = Depends(get_db)):
+    db_paciente = db.query(Paciente).filter(Paciente.id == agendamento.paciente_id).first()
+    if db_paciente is None:
+        raise HTTPException(status_code=404, detail="Paciente not found")
+        
+    db_agendamento = Agendamento(
+        paciente_id=agendamento.paciente_id,
+        data_hora_inicio=agendamento.data_hora_inicio,
+        data_hora_fim=agendamento.data_hora_fim,
+        status='Agendado'
+    )
     db.add(db_agendamento)
     db.commit()
     db.refresh(db_agendamento)
     return db_agendamento
 
-@app.get("/agendamentos", response_model=List[schemas.Agendamento])
-def listar_agendamentos(db: Session = Depends(get_db)):
-    agendamentos = db.query(models.Agendamento).options(
-        joinedload(models.Agendamento.paciente)
-    ).all()
-    return agendamentos
-
-@app.patch("/agendamentos/{agendamento_id}", response_model=schemas.Agendamento)
-def atualizar_agendamento(
-    agendamento_id: int, 
-    agendamento_update: schemas.AgendamentoUpdate, 
-    db: Session = Depends(get_db)
-):
-    """
-    Atualiza um agendamento (ex: muda data/hora).
-    Usado pelo drag-and-drop.
-    """
-    db_agendamento = get_agendamento_by_id(db, agendamento_id)
-    if not db_agendamento:
-        raise HTTPException(status_code=404, detail="Agendamento não encontrado")
-
-    update_data = agendamento_update.model_dump(exclude_unset=True)
+@app.patch("/agendamentos/{agendamento_id}", response_model=AgendamentoSchema)
+def atualizar_data_agendamento(agendamento_id: int, update_data: AgendamentoUpdate, db: Session = Depends(get_db)):
+    db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
+    if db_agendamento is None:
+        raise HTTPException(status_code=404, detail="Agendamento not found")
     
-    for key, value in update_data.items():
-        setattr(db_agendamento, key, value)
-        
+    db_agendamento.data_hora_inicio = update_data.data_hora_inicio
+    db_agendamento.data_hora_fim = update_data.data_hora_fim
     db.commit()
     db.refresh(db_agendamento)
-    
     return db_agendamento
 
-@app.post("/agendamentos/{agendamento_id}/checkin", response_model=schemas.Agendamento)
-def fazer_checkin_agendamento(agendamento_id: int, db: Session = Depends(get_db)):
-    agendamento = get_agendamento_by_id(db, agendamento_id)
-    if not agendamento:
-        raise HTTPException(status_code=404, detail=f"Agendamento com ID {agendamento_id} não encontrado.")
-    if agendamento.status == schemas.StatusAgendamento.presente:
-        raise HTTPException(status_code=400, detail="Check-in já realizado para este agendamento.")
-    agendamento.status = schemas.StatusAgendamento.presente
+@app.delete("/agendamentos/{agendamento_id}", status_code=status.HTTP_200_OK)
+def deletar_agendamento(agendamento_id: int, db: Session = Depends(get_db)):
+    db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
+    if db_agendamento is None:
+        raise HTTPException(status_code=404, detail="Agendamento not found")
+        
+    db.delete(db_agendamento)
     db.commit()
-    db.refresh(agendamento)
-    return agendamento
+    return {"detail": "Agendamento deletado com sucesso"}
 
-@app.post("/agendamentos/{agendamento_id}/cancelar", response_model=schemas.Agendamento)
-def cancelar_agendamento(agendamento_id: int, db: Session = Depends(get_db)):
-    agendamento = get_agendamento_by_id(db, agendamento_id)
-    if not agendamento:
-        raise HTTPException(status_code=404, detail="Agendamento não encontrado.")
-    if agendamento.status == schemas.StatusAgendamento.presente:
-        raise HTTPException(status_code=400, detail="Não é possível cancelar um agendamento que já ocorreu.")
-    if agendamento.status == schemas.StatusAgendamento.cancelado:
-        return agendamento
-    agendamento.status = schemas.StatusAgendamento.cancelado
+# --- Rotas de AÇÕES (Check-in, Cancelar) ---
+
+@app.post("/agendamentos/{agendamento_id}/checkin", response_model=AgendamentoSchema)
+def fazer_checkin(agendamento_id: int, db: Session = Depends(get_db)):
+    db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
+    if db_agendamento is None:
+        raise HTTPException(status_code=404, detail="Agendamento not found")
+    
+    db_agendamento.status = 'Presente'
     db.commit()
-    db.refresh(agendamento)
-    return agendamento
+    db.refresh(db_agendamento)
+    return db_agendamento
 
-# ===============================================
-# ENDPOINTS DE EVOLUÇÃO
-# ===============================================
+@app.post("/agendamentos/{agendamento_id}/cancelar", response_model=AgendamentoSchema)
+def cancelar_atendimento(agendamento_id: int, db: Session = Depends(get_db)):
+    db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
+    if db_agendamento is None:
+        raise HTTPException(status_code=404, detail="Agendamento not found")
+    
+    db_agendamento.status = 'Cancelado'
+    db.commit()
+    db.refresh(db_agendamento)
+    return db_agendamento
 
-@app.post("/agendamentos/{agendamento_id}/evolucoes", response_model=schemas.Evolucao, status_code=201)
-def criar_evolucao(agendamento_id: int, evolucao: schemas.EvolucaoCreate, db: Session = Depends(get_db)):
-    agendamento = get_agendamento_by_id(db, agendamento_id)
-    if not agendamento:
-        raise HTTPException(status_code=404, detail=f"Agendamento com ID {agendamento_id} não encontrado.")
-    db_evolucao = models.Evolucao(
+# --- Rotas de EVOLUÇÃO ---
+
+@app.post("/agendamentos/{agendamento_id}/evolucoes", status_code=status.HTTP_201_CREATED)
+def criar_evolucao(agendamento_id: int, evolucao: EvolucaoCreate, db: Session = Depends(get_db)):
+    db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
+    if db_agendamento is None:
+        raise HTTPException(status_code=404, detail="Agendamento not found")
+    
+    # Verifica se já existe uma evolução (não permite duas)
+    if db_agendamento.evolucao:
+        raise HTTPException(status_code=400, detail="Este agendamento já possui uma evolução")
+
+    db_evolucao = Evolucao(
+        texto_evolucao=evolucao.texto_evolucao,
         agendamento_id=agendamento_id,
-        data_criacao=datetime.now(),
-        **evolucao.model_dump()
+        paciente_id=db_agendamento.paciente_id
     )
     db.add(db_evolucao)
     db.commit()
-    db.refresh(db_evolucao)
-    return db_evolucao
+    return {"detail": "Evolução salva com sucesso"}
 
-@app.get("/agendamentos/{agendamento_id}/evolucoes", response_model=List[schemas.Evolucao])
-def listar_evolucoes_do_agendamento(agendamento_id: int, db: Session = Depends(get_db)):
-    agendamento = get_agendamento_by_id(db, agendamento_id)
-    if not agendamento:
-        raise HTTPException(status_code=404, detail=f"Agendamento com ID {agendamento_id} não encontrado.")
-    return agendamento.evolucoes
-
-# ===============================================
-# ENDPOINT DE HISTÓRICO DE EVOLUÇÕES
-# ===============================================
-
-@app.get("/pacientes/{paciente_id}/evolucoes", response_model=List[schemas.Evolucao])
-def get_historico_evolucoes_paciente(paciente_id: int, db: Session = Depends(get_db)):
-    """
-    Busca todas as evoluções de um paciente específico,
-    ordenadas da mais recente para a mais antiga.
-    """
-    paciente = get_paciente_by_id(db, paciente_id)
-    if not paciente:
-        raise HTTPException(status_code=404, detail="Paciente não encontrado.")
+@app.get("/pacientes/{paciente_id}/evolucoes", response_model=List[EvolucaoSchema])
+def listar_evolucoes_paciente(paciente_id: int, db: Session = Depends(get_db)):
+    db_paciente = db.query(Paciente).filter(Paciente.id == paciente_id).first()
+    if db_paciente is None:
+        raise HTTPException(status_code=404, detail="Paciente not found")
         
-    historico = db.query(models.Evolucao) \
-        .join(models.Agendamento, models.Evolucao.agendamento_id == models.Agendamento.id) \
-        .filter(models.Agendamento.paciente_id == paciente_id) \
-        .order_by(models.Evolucao.data_criacao.desc()) \
-        .all()
-        
-    return historico
+    evolucoes = db.query(Evolucao).filter(Evolucao.paciente_id == paciente_id).all()
+    return evolucoes
 
-# ===============================================
-# ENDPOINT DE DASHBOARD
-# ===============================================
+# --- Rota de DASHBOARD ---
 
-@app.get("/dashboard/sessoes-por-mes", response_model=List[schemas.SessaoDashboard])
+@app.get("/dashboard/sessoes-por-mes", response_model=List[DashboardSessao])
 def get_dashboard_sessoes(ano: int, mes: int, db: Session = Depends(get_db)):
-    try:
-        resultados = db.query(
-            models.Paciente.nome.label("nome_paciente"),
-            func.count(models.Agendamento.id).label("total_sessoes")
-        ).join(models.Paciente, models.Agendamento.paciente_id == models.Paciente.id) \
-         .filter(models.Agendamento.status == schemas.StatusAgendamento.presente) \
-         .filter(extract('year', models.Agendamento.data_hora_inicio) == ano) \
-         .filter(extract('month', models.Agendamento.data_hora_inicio) == mes) \
-         .group_by(models.Paciente.nome) \
-         .order_by(func.count(models.Agendamento.id).desc()) \
-         .all()
-        return resultados
-    except Exception as e:
-        print(f"Erro no dashboard: {e}") 
-        raise HTTPException(status_code=500, detail="Erro ao processar a consulta do dashboard.")
+    # Esta é uma query complexa que conta agendamentos "Presentes"
+    # por paciente, filtrando por mês e ano.
+    
+    from sqlalchemy import func, extract
+    
+    resultados = db.query(
+        Paciente.nome.label("nome_paciente"),
+        func.count(Agendamento.id).label("total_sessoes")
+    ).join(
+        Paciente, Agendamento.paciente_id == Paciente.id
+    ).filter(
+        Agendamento.status == 'Presente',
+        extract('year', Agendamento.data_hora_inicio) == ano,
+        extract('month', Agendamento.data_hora_inicio) == mes
+    ).group_by(
+        Paciente.nome
+    ).order_by(
+        func.count(Agendamento.id).desc()
+    ).all()
+    
+    return resultados
+
+# --- Rota Raiz (Opcional) ---
+
+@app.get("/")
+def read_root():
+    return {"message": "API da Agenda de Fisioterapia está no ar!"}
