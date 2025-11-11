@@ -57,9 +57,6 @@ def ler_raiz():
 
 @app.post("/pacientes", response_model=schemas.Paciente, status_code=201)
 def criar_paciente(paciente: schemas.PacienteCreate, db: Session = Depends(get_db)):
-    """
-    Cadastra um novo paciente no sistema.
-    """
     db_paciente = models.Paciente(**paciente.model_dump())
     db.add(db_paciente)
     db.commit()
@@ -68,9 +65,6 @@ def criar_paciente(paciente: schemas.PacienteCreate, db: Session = Depends(get_d
 
 @app.get("/pacientes", response_model=List[schemas.Paciente])
 def listar_pacientes(db: Session = Depends(get_db)):
-    """
-    Retorna uma lista de todos os pacientes cadastrados.
-    """
     pacientes = db.query(models.Paciente).all()
     return pacientes
 
@@ -80,16 +74,12 @@ def listar_pacientes(db: Session = Depends(get_db)):
 
 @app.post("/agendamentos", response_model=schemas.Agendamento, status_code=201)
 def criar_agendamento(agendamento: schemas.AgendamentoCreate, db: Session = Depends(get_db)):
-    """
-    Cria um novo agendamento para um paciente.
-    """
     paciente = get_paciente_by_id(db, agendamento.paciente_id)
     if not paciente:
         raise HTTPException(
             status_code=404, 
             detail=f"Paciente com ID {agendamento.paciente_id} não encontrado."
         )
-        
     db_agendamento = models.Agendamento(**agendamento.model_dump())
     db.add(db_agendamento)
     db.commit()
@@ -98,10 +88,6 @@ def criar_agendamento(agendamento: schemas.AgendamentoCreate, db: Session = Depe
 
 @app.get("/agendamentos", response_model=List[schemas.Agendamento])
 def listar_agendamentos(db: Session = Depends(get_db)):
-    """
-    Retorna uma lista de todos os agendamentos,
-    incluindo os dados do paciente associado.
-    """
     agendamentos = db.query(models.Agendamento).options(
         joinedload(models.Agendamento.paciente)
     ).all()
@@ -109,15 +95,11 @@ def listar_agendamentos(db: Session = Depends(get_db)):
 
 @app.post("/agendamentos/{agendamento_id}/checkin", response_model=schemas.Agendamento)
 def fazer_checkin_agendamento(agendamento_id: int, db: Session = Depends(get_db)):
-    """
-    Realiza o check-in de um agendamento, mudando seu status para 'Presente'.
-    """
     agendamento = get_agendamento_by_id(db, agendamento_id)
     if not agendamento:
         raise HTTPException(status_code=404, detail=f"Agendamento com ID {agendamento_id} não encontrado.")
     if agendamento.status == schemas.StatusAgendamento.presente:
         raise HTTPException(status_code=400, detail="Check-in já realizado para este agendamento.")
-    
     agendamento.status = schemas.StatusAgendamento.presente
     db.commit()
     db.refresh(agendamento)
@@ -125,21 +107,14 @@ def fazer_checkin_agendamento(agendamento_id: int, db: Session = Depends(get_db)
 
 @app.post("/agendamentos/{agendamento_id}/cancelar", response_model=schemas.Agendamento)
 def cancelar_agendamento(agendamento_id: int, db: Session = Depends(get_db)):
-    """
-    Cancela um agendamento, mudando seu status para 'Cancelado'.
-    """
     agendamento = get_agendamento_by_id(db, agendamento_id)
-    
     if not agendamento:
         raise HTTPException(status_code=404, detail="Agendamento não encontrado.")
-            
     if agendamento.status == schemas.StatusAgendamento.presente:
         raise HTTPException(status_code=400, detail="Não é possível cancelar um agendamento que já ocorreu.")
     if agendamento.status == schemas.StatusAgendamento.cancelado:
-        return agendamento # Já está cancelado
-
+        return agendamento
     agendamento.status = schemas.StatusAgendamento.cancelado
-    
     db.commit()
     db.refresh(agendamento)
     return agendamento
@@ -153,7 +128,6 @@ def criar_evolucao(agendamento_id: int, evolucao: schemas.EvolucaoCreate, db: Se
     agendamento = get_agendamento_by_id(db, agendamento_id)
     if not agendamento:
         raise HTTPException(status_code=404, detail=f"Agendamento com ID {agendamento_id} não encontrado.")
-        
     db_evolucao = models.Evolucao(
         agendamento_id=agendamento_id,
         data_criacao=datetime.now(),
@@ -172,15 +146,33 @@ def listar_evolucoes_do_agendamento(agendamento_id: int, db: Session = Depends(g
     return agendamento.evolucoes
 
 # ===============================================
+# ENDPOINT DE HISTÓRICO DE EVOLUÇÕES
+# ===============================================
+
+@app.get("/pacientes/{paciente_id}/evolucoes", response_model=List[schemas.Evolucao])
+def get_historico_evolucoes_paciente(paciente_id: int, db: Session = Depends(get_db)):
+    """
+    Busca todas as evoluções de um paciente específico,
+    ordenadas da mais recente para a mais antiga.
+    """
+    paciente = get_paciente_by_id(db, paciente_id)
+    if not paciente:
+        raise HTTPException(status_code=404, detail="Paciente não encontrado.")
+        
+    historico = db.query(models.Evolucao) \
+        .join(models.Agendamento, models.Evolucao.agendamento_id == models.Agendamento.id) \
+        .filter(models.Agendamento.paciente_id == paciente_id) \
+        .order_by(models.Evolucao.data_criacao.desc()) \
+        .all()
+        
+    return historico
+
+# ===============================================
 # ENDPOINT DE DASHBOARD
 # ===============================================
 
 @app.get("/dashboard/sessoes-por-mes", response_model=List[schemas.SessaoDashboard])
 def get_dashboard_sessoes(ano: int, mes: int, db: Session = Depends(get_db)):
-    """
-    Calcula o total de sessões 'Presente' para cada paciente 
-    em um determinado mês e ano.
-    """
     try:
         resultados = db.query(
             models.Paciente.nome.label("nome_paciente"),
@@ -192,9 +184,7 @@ def get_dashboard_sessoes(ano: int, mes: int, db: Session = Depends(get_db)):
          .group_by(models.Paciente.nome) \
          .order_by(func.count(models.Agendamento.id).desc()) \
          .all()
-        
         return resultados
-    
     except Exception as e:
         print(f"Erro no dashboard: {e}") 
         raise HTTPException(status_code=500, detail="Erro ao processar a consulta do dashboard.")

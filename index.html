@@ -19,7 +19,6 @@
             cursor: pointer;
         }
 
-        /* Cabeçalho com botões */
         .header-controls {
             display: flex;
             justify-content: space-between;
@@ -39,20 +38,15 @@
             margin-left: 10px;
         }
         #btn-abrir-modal-paciente {
-            background-color: #17a2b8; /* Ciano */
+            background-color: #17a2b8;
         }
         #btn-abrir-dashboard {
-            background-color: #6f42c1; /* Roxo */
+            background-color: #6f42c1;
         }
-        
-        /* --- NOVO: Botão Lista de Pacientes --- */
         #btn-abrir-lista-pacientes {
-            background-color: #28a745; /* Verde */
+            background-color: #28a745;
         }
-        /* --- FIM NOVO --- */
-        
 
-        /* --- CSS DO MODAL (Genérico) --- */
         .modal-container {
             display: none;
             position: fixed;
@@ -134,7 +128,6 @@
             margin-top: 20px;
         }
 
-        /* Tabela genérica (para Dashboard e Lista de Pacientes) */
         .modal-table {
             width: 100%;
             border-collapse: collapse;
@@ -148,8 +141,38 @@
         .modal-table th {
             background-color: #f2f2f2;
         }
+        
+        #lista-pacientes-tbody tr {
+            cursor: pointer; /* Faz as linhas da lista de pacientes clicáveis */
+        }
+        #lista-pacientes-tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        /* Estilos do Histórico de Evolução */
+        #historico-evolucoes-content .evolucao-item {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+            margin-bottom: 10px;
+        }
+        #historico-evolucoes-content .evolucao-item:last-child {
+            border-bottom: none;
+        }
+        #historico-evolucoes-content .evolucao-data {
+            font-weight: bold;
+            font-size: 0.9em;
+            color: #555;
+        }
+        #historico-evolucoes-content .evolucao-texto {
+            font-size: 1em;
+            margin-top: 5px;
+            white-space: pre-wrap; /* Preserva quebras de linha */
+        }
+        #loading-dashboard, #loading-historico {
+            display: none;
+            font-style: italic;
+        }
 
-        /* --- NOVO: Estilos do Dashboard --- */
         #dashboard-filtros {
             display: flex;
             gap: 15px;
@@ -160,10 +183,6 @@
             padding: 8px;
             font-size: 1em;
             margin-top: 0;
-        }
-        #loading-dashboard {
-            display: none;
-            font-style: italic;
         }
     </style>
 </head>
@@ -245,6 +264,7 @@
         <div class="modal-content">
             <span class="modal-close" id="modal-lista-pacientes-close">&times;</span>
             <h3>Pacientes Cadastrados</h3>
+            <p style="font-size: 0.9em; color: #555;">Clique em um paciente para ver seu histórico de evoluções.</p>
             <div id="lista-pacientes-resultados">
                 <table class="modal-table">
                     <thead>
@@ -260,6 +280,18 @@
             </div>
         </div>
     </div>
+    
+    <div id="modal-historico-container" class="modal-container">
+        <div class="modal-content">
+            <span class="modal-close" id="modal-historico-close">&times;</span>
+            <h3>Histórico de <span id="historico-nome-paciente"></span></h3>
+            <p id="loading-historico">Carregando histórico...</p>
+            <div id="historico-evolucoes-content">
+                </div>
+        </div>
+    </div>
+
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var calendarEl = document.getElementById('calendar');
@@ -298,12 +330,19 @@
             const loadingDashboard = document.getElementById('loading-dashboard');
             const dashboardResultados = document.getElementById('dashboard-resultados');
 
-            // --- NOVO: Seletores (Modal Lista Pacientes) ---
+            // --- Seletores (Modal Lista Pacientes) ---
             const btnAbrirListaPacientes = document.getElementById('btn-abrir-lista-pacientes');
             const modalListaPacientesContainer = document.getElementById('modal-lista-pacientes-container');
             const modalListaPacientesClose = document.getElementById('modal-lista-pacientes-close');
             const listaPacientesTbody = document.getElementById('lista-pacientes-tbody');
-            // --- FIM NOVO ---
+
+            // --- Seletores (Modal Histórico) ---
+            const modalHistoricoContainer = document.getElementById('modal-historico-container');
+            const modalHistoricoClose = document.getElementById('modal-historico-close');
+            const historicoNomePaciente = document.getElementById('historico-nome-paciente');
+            const loadingHistorico = document.getElementById('loading-historico');
+            const historicoEvolucoesContent = document.getElementById('historico-evolucoes-content');
+
 
             // --- LÓGICA DO CALENDÁRIO ---
             var calendar = new FullCalendar.Calendar(calendarEl, {
@@ -325,10 +364,9 @@
                 eventClick: handleEventClick,
                 events: `${API_URL}/agendamentos`,
                 eventDataTransform: function(apiEvent) {
-                    let color = '#3788d8'; // Azul (Agendado)
-                    if (apiEvent.status === 'Presente') color = '#2ca02c'; // Verde
-                    if (apiEvent.status === 'Cancelado') color = '#6c757d'; // Cinza
-                    
+                    let color = '#3788d8';
+                    if (apiEvent.status === 'Presente') color = '#2ca02c';
+                    if (apiEvent.status === 'Cancelado') color = '#6c757d';
                     return {
                         id: apiEvent.id,
                         title: `${apiEvent.paciente.nome} (${apiEvent.status})`, 
@@ -350,7 +388,6 @@
                     } else { console.error('Erro ao carregar pacientes.'); }
                 } catch (error) { console.error('Erro de rede ao carregar pacientes:', error); }
             }
-
             function popularFiltrosDashboard() {
                 const hoje = new Date();
                 const mesAtual = hoje.getMonth();
@@ -549,11 +586,7 @@
                         alert(`Paciente "${pacienteCriado.nome}" cadastrado com sucesso! \nNovo ID: ${pacienteCriado.id}`);
                         formNovoPaciente.reset();
                         modalPacienteContainer.style.display = 'none';
-                        
-                        // CORREÇÃO DO CACHE: Adiciona o novo paciente à lista
                         listaDePacientesCache.push(pacienteCriado);
-                        console.log('Cache atualizado manualmente:', listaDePacientesCache);
-                        
                     } else {
                         const error = await response.json();
                         alert(`Erro ao cadastrar: ${error.detail}`);
@@ -579,7 +612,6 @@
                     const response = await fetch(`${API_URL}/dashboard/sessoes-por-mes?ano=${ano}&mes=${mes}`);
                     if (!response.ok) { throw new Error('Erro ao buscar dados.'); }
                     const dados = await response.json();
-                    
                     let tabelaHTML = '<table class="modal-table"><tr><th>Paciente</th><th>Total de Sessões</th></tr>';
                     if (dados.length === 0) {
                         tabelaHTML = "<p>Nenhuma sessão realizada encontrada para este período.</p>";
@@ -590,7 +622,6 @@
                         tabelaHTML += "</table>";
                     }
                     dashboardResultados.innerHTML = tabelaHTML;
-
                 } catch (error) {
                     console.error('Erro no dashboard:', error);
                     dashboardResultados.innerHTML = "<p style='color: red;'>Erro ao carregar dados.</p>";
@@ -599,15 +630,12 @@
                 }
             };
 
-            // --- NOVO: LÓGICA DO MODAL LISTA PACIENTES ---
+            // --- LÓGICA DO MODAL LISTA PACIENTES ---
             btnAbrirListaPacientes.onclick = () => {
-                // Limpa a tabela antiga
                 listaPacientesTbody.innerHTML = ""; 
-
                 if (listaDePacientesCache.length === 0) {
                     listaPacientesTbody.innerHTML = "<tr><td colspan='3'>Nenhum paciente cadastrado.</td></tr>";
                 } else {
-                    // Preenche a tabela com os dados do cache
                     listaDePacientesCache.forEach(paciente => {
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
@@ -615,32 +643,68 @@
                             <td>${paciente.nome}</td>
                             <td>${paciente.telefone}</td>
                         `;
+                        // Adiciona o evento de clique para abrir o histórico
+                        tr.onclick = () => {
+                            abrirHistoricoPaciente(paciente.id, paciente.nome);
+                        };
                         listaPacientesTbody.appendChild(tr);
                     });
                 }
-                
-                // Abre o modal
                 modalListaPacientesContainer.style.display = 'flex';
             };
             modalListaPacientesClose.onclick = () => modalListaPacientesContainer.style.display = 'none';
+
+            // --- NOVO: LÓGICA DO MODAL HISTÓRICO DE EVOLUÇÕES ---
+            modalHistoricoClose.onclick = () => modalHistoricoContainer.style.display = 'none';
+
+            async function abrirHistoricoPaciente(pacienteId, pacienteNome) {
+                // Prepara o modal
+                historicoNomePaciente.textContent = pacienteNome;
+                loadingHistorico.style.display = 'block';
+                historicoEvolucoesContent.innerHTML = "";
+                modalHistoricoContainer.style.display = 'flex';
+                
+                // Busca os dados na API
+                try {
+                    const response = await fetch(`${API_URL}/pacientes/${pacienteId}/evolucoes`);
+                    if (!response.ok) {
+                        throw new Error('Erro ao buscar histórico.');
+                    }
+                    const evolucoes = await response.json();
+                    
+                    if (evolucoes.length === 0) {
+                        historicoEvolucoesContent.innerHTML = "<p>Nenhuma evolução registrada para este paciente.</p>";
+                    } else {
+                        // Formata e exibe cada evolução
+                        evolucoes.forEach(evo => {
+                            const data = new Date(evo.data_criacao).toLocaleString('pt-BR');
+                            const itemHTML = `
+                                <div class="evolucao-item">
+                                    <div class="evolucao-data">${data}</div>
+                                    <div class="evolucao-texto">${evo.texto_evolucao}</div>
+                                </div>
+                            `;
+                            historicoEvolucoesContent.innerHTML += itemHTML;
+                        });
+                    }
+                    
+                } catch (error) {
+                    console.error('Erro ao buscar histórico:', error);
+                    historicoEvolucoesContent.innerHTML = "<p style='color: red;'>Erro ao carregar histórico.</p>";
+                } finally {
+                    loadingHistorico.style.display = 'none'; // Esconde "Carregando..."
+                }
+            }
             // --- FIM NOVO ---
 
 
             // (Fechar Modais ao clicar fora)
             window.onclick = (event) => {
-                if (event.target == modalContainer) {
-                    modalContainer.style.display = 'none';
-                }
-                if (event.target == modalPacienteContainer) {
-                    modalPacienteContainer.style.display = 'none';
-                }
-                if (event.target == modalDashboardContainer) {
-                    modalDashboardContainer.style.display = 'none';
-                }
-                // NOVO:
-                if (event.target == modalListaPacientesContainer) {
-                    modalListaPacientesContainer.style.display = 'none';
-                }
+                if (event.target == modalContainer) modalContainer.style.display = 'none';
+                if (event.target == modalPacienteContainer) modalPacienteContainer.style.display = 'none';
+                if (event.target == modalDashboardContainer) modalDashboardContainer.style.display = 'none';
+                if (event.target == modalListaPacientesContainer) modalListaPacientesContainer.style.display = 'none';
+                if (event.target == modalHistoricoContainer) modalHistoricoContainer.style.display = 'none'; // NOVO
             };
         });
     </script>
