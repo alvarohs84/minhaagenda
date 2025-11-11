@@ -1,14 +1,13 @@
 # --- main.py ---
-# Este é um arquivo de backend completo usando FastAPI e SQLAlchemy.
-# Ele contém todas as rotas necessárias para o seu index.html funcionar.
+# [CORRIGIDO] Atualizado para Pydantic v2 (from_attributes=True)
 
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, Text, Enum as PyEnum
 from sqlalchemy.orm import sessionmaker, Session, relationship
-# [CORREÇÃO APLICADA AQUI]
 from sqlalchemy.orm import declarative_base 
-from pydantic import BaseModel
+# [CORREÇÃO] Importar ConfigDict
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime, date
 
@@ -44,7 +43,6 @@ class Agendamento(Base):
     data_hora_fim = Column(DateTime, nullable=False)
     status = Column(PyEnum('Agendado', 'Presente', 'Cancelado', name='status_agendamento'), default='Agendado')
     
-    # [CORREÇÃO CRÍTICA ondelete="CASCADE"]
     paciente_id = Column(Integer, ForeignKey('pacientes.id', ondelete="CASCADE"), nullable=False)
     
     paciente = relationship("Paciente", back_populates="agendamentos")
@@ -70,7 +68,7 @@ Base.metadata.create_all(bind=engine)
 class PacienteBase(BaseModel):
     nome: str
     telefone: Optional[str] = None
-    data_nascimento: Optional[date] = None # Recebe como data
+    data_nascimento: Optional[date] = None
     sexo: Optional[str] = None
     diagnostico_medico: Optional[str] = None
 
@@ -79,8 +77,8 @@ class PacienteCreate(PacienteBase):
 
 class PacienteSchema(PacienteBase):
     id: int
-    class Config:
-        orm_mode = True
+    # [CORREÇÃO] Atualizado de 'orm_mode' para 'model_config'
+    model_config = ConfigDict(from_attributes=True)
 
 class EvolucaoCreate(BaseModel):
     texto_evolucao: str
@@ -101,8 +99,8 @@ class AgendamentoSchema(BaseModel):
     status: str
     paciente: PacienteSchema 
     
-    class Config:
-        orm_mode = True
+    # [CORREÇÃO] Atualizado de 'orm_mode' para 'model_config'
+    model_config = ConfigDict(from_attributes=True)
 
 class DashboardSessao(BaseModel):
     nome_paciente: str
@@ -113,8 +111,8 @@ class EvolucaoSchema(BaseModel):
     texto_evolucao: str
     data_criacao: datetime
     
-    class Config:
-        orm_mode = True
+    # [CORREÇÃO] Atualizado de 'orm_mode' para 'model_config'
+    model_config = ConfigDict(from_attributes=True)
 
 # --- 4. INICIALIZAÇÃO DO APP E CORS ---
 
@@ -168,11 +166,19 @@ def atualizar_paciente(paciente_id: int, paciente: PacienteCreate, db: Session =
     if db_paciente is None:
         raise HTTPException(status_code=404, detail="Paciente not found")
     
-    db_paciente.nome = paciente.nome
-    db_paciente.telefone = paciente.telefone
-    db_paciente.data_nascimento = datetime.combine(paciente.data_nascimento, datetime.min.time()) if paciente.data_nascimento else None
-    db_paciente.sexo = paciente.sexo
-    db_paciente.diagnostico_medico = paciente.diagnostico_medico
+    dados_paciente = paciente.model_dump(exclude_unset=True)
+    
+    # Lógica especial para data_nascimento (converter data para datetime)
+    if 'data_nascimento' in dados_paciente:
+        if dados_paciente['data_nascimento']:
+            db_paciente.data_nascimento = datetime.combine(dados_paciente['data_nascimento'], datetime.min.time())
+        else:
+            db_paciente.data_nascimento = None
+        del dados_paciente['data_nascimento'] # Remove para não tentar atualizar de novo
+
+    # Atualiza os outros campos
+    for key, value in dados_paciente.items():
+        setattr(db_paciente, key, value)
     
     db.commit()
     db.refresh(db_paciente)
@@ -223,11 +229,15 @@ def atualizar_data_agendamento(agendamento_id: int, update_data: AgendamentoUpda
     if db_agendamento is None:
         raise HTTPException(status_code=404, detail="Agendamento not found")
     
-    db_agendamento.data_hora_inicio = update_data.data_hora_inicio
-    db_agendamento.data_hora_fim = update_data.data_hora_fim
-    db.commit()
-    db.refresh(db_agendamento)
-    return db_agendamento
+    try:
+        db_agendamento.data_hora_inicio = update_data.data_hora_inicio
+        db_agendamento.data_hora_fim = update_data.data_hora_fim
+        db.commit()
+        db.refresh(db_agendamento)
+        return db_agendamento
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar no banco: {e}")
 
 @app.delete("/agendamentos/{agendamento_id}", status_code=status.HTTP_200_OK)
 def deletar_agendamento(agendamento_id: int, db: Session = Depends(get_db)):
