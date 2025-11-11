@@ -102,6 +102,8 @@
         
         #btn-checkin { background-color: #28a745; color: white; }
         #btn-cancelar { background-color: #ffc107; color: black; } 
+        /* [NOVO] Estilo para o botão de excluir agendamento */
+        #btn-excluir-agendamento { background-color: #dc3545; color: white; }
         #btn-gravar { background-color: #dc3545; color: white; }
         #btn-salvar-evolucao { background-color: #007bff; color: white; }
         #status-gravacao { font-style: italic; color: #555; }
@@ -152,8 +154,7 @@
         #lista-pacientes-tbody tr:hover {
             background-color: #f5f5f5;
         }
-
-        /* [NOVO] Estilo para os botões de ação */
+        
         .btn-acao {
             padding: 5px 8px;
             font-size: 0.9em;
@@ -225,8 +226,11 @@
             <p><strong>Diagnóstico:</strong> <span id="modal-paciente-diagnostico"></span></p>
             <p><strong>Telefone:</strong> <span id="modal-paciente-telefone"></span></p>
             <p><strong>Status:</strong> <span id="modal-agendamento-status"></span></p>
+            
             <button id="btn-checkin">Fazer Check-in</button>
             <button id="btn-cancelar">Cancelar Atendimento</button>
+            <button id="btn-excluir-agendamento">Excluir Agendamento 🗑️</button>
+
             <hr style="margin-top: 20px;">
             <h4>Evolução da Sessão</h4>
             <textarea id="texto-evolucao" placeholder="Digite ou grave a evolução..."></textarea>
@@ -239,7 +243,8 @@
     <div id="modal-paciente-container" class="modal-container">
         <div class="modal-content">
             <span class="modal-close" id="modal-paciente-close">&times;</span>
-            <h3 id="modal-titulo-paciente">Cadastrar Novo Paciente</h3> <form id="form-novo-paciente">
+            <h3 id="modal-titulo-paciente">Cadastrar Novo Paciente</h3> 
+            <form id="form-novo-paciente">
                 <label for="paciente-nome">Nome Completo:</label>
                 <input type="text" id="paciente-nome" required>
                 
@@ -296,7 +301,8 @@
                             <th>ID</th>
                             <th>Nome</th>
                             <th>Telefone</th>
-                            <th>Ações</th> </tr>
+                            <th>Ações</th> 
+                        </tr>
                     </thead>
                     <tbody id="lista-pacientes-tbody">
                     </tbody>
@@ -311,7 +317,7 @@
             <h3>Histórico de <span id="historico-nome-paciente"></span></h3>
             <p id="loading-historico">Carregando histórico...</p>
             <div id="historico-evolucoes-content">
-                </div>
+            </div>
         </div>
     </div>
 
@@ -323,7 +329,6 @@
             const API_URL = 'https://minhaagenda.onrender.com';
             let listaDePacientesCache = [];
             
-            // [NOVO] Variável para controlar edição
             let pacienteIdEmEdicao = null;
 
             // --- Seletores (Modal Agendamento) ---
@@ -340,13 +345,15 @@
             const textoEvolucao = document.getElementById('texto-evolucao');
             const statusGravacao = document.getElementById('status-gravacao');
             const btnCancelar = document.getElementById('btn-cancelar');
+            // [NOVO] Seletor do botão de excluir agendamento
+            const btnExcluirAgendamento = document.getElementById('btn-excluir-agendamento');
 
             // --- Seletores (Modal Paciente) ---
             const btnAbrirModalPaciente = document.getElementById('btn-abrir-modal-paciente');
             const modalPacienteContainer = document.getElementById('modal-paciente-container');
             const modalPacienteClose = document.getElementById('modal-paciente-close');
             const formNovoPaciente = document.getElementById('form-novo-paciente');
-            const modalTituloPaciente = document.getElementById('modal-titulo-paciente'); // [NOVO] Seletor do título
+            const modalTituloPaciente = document.getElementById('modal-titulo-paciente'); 
 
             // --- Seletores (Modal Dashboard) ---
             const btnAbrirDashboard = document.getElementById('btn-abrir-dashboard');
@@ -441,8 +448,8 @@
                 const novoPaciente = {
                     nome: nome,
                     telefone: "",
-                    data_nascimento: '1900-01-01', // Data padrão
-                    sexo: 'Outro',               // Sexo padrão
+                    data_nascimento: '1900-01-01', 
+                    sexo: 'Outro',               
                     diagnostico_medico: ""
                 };
 
@@ -537,7 +544,6 @@
             // --- FUNÇÕES DO CALENDÁRIO ---
             
             async function handleSelectTime(selectionInfo) {
-                // ESTA FUNÇÃO SERÁ O ALVO DA NOSSA PRÓXIMA MELHORIA (IDEIA 1)
                 let nomePaciente = prompt('Digite o NOME do paciente para agendar:');
                 if (!nomePaciente) return;
                 const pacienteEncontrado = listaDePacientesCache.find(
@@ -578,6 +584,8 @@
                 textoEvolucao.value = '';
                 statusGravacao.textContent = '';
                 
+                // [MODIFICADO] Mostra/oculta botões de status
+                btnExcluirAgendamento.style.display = 'inline-block'; // Sempre mostra
                 if (apiEvent.status === 'Agendado') {
                     btnCheckin.style.display = 'inline-block';
                     btnCancelar.style.display = 'inline-block';
@@ -667,6 +675,31 @@
                 } catch (error) { console.error('Erro de rede:', error); }
             };
 
+            // [NOVO] Lógica para Excluir o Agendamento
+            btnExcluirAgendamento.onclick = async () => {
+                if (!confirm(`Tem certeza que deseja EXCLUIR PERMANENTEMENTE este agendamento?\n\nPaciente: ${modalPacienteNome.textContent}\nIsso não pode ser desfeito.`)) {
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`${API_URL}/agendamentos/${currentAgendamentoId}`, { 
+                        method: 'DELETE' 
+                    });
+                    
+                    if (response.ok) {
+                        alert('Agendamento excluído com sucesso!');
+                        modalContainer.style.display = 'none';
+                        calendar.refetchEvents(); // Remove o evento da agenda
+                    } else {
+                        const error = await response.json();
+                        alert(`Erro ao excluir agendamento: ${JSON.stringify(error.detail)}`);
+                    }
+                } catch (error) { 
+                    console.error('Erro de rede ao excluir agendamento:', error); 
+                    alert('Erro de conexão ao tentar excluir o agendamento.');
+                }
+            };
+
             // --- LÓGICA DA API DE VOZ (EVOLUÇÃO) ---
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             let recognition;
@@ -715,23 +748,21 @@
             // --- LÓGICA DO MODAL DE CADASTRO DE PACIENTE (CRIAR E EDITAR) ---
             btnAbrirModalPaciente.onclick = () => {
                 formNovoPaciente.reset();
-                pacienteIdEmEdicao = null; // [MODIFICADO] Garante que é modo CRIAÇÃO
-                modalTituloPaciente.textContent = 'Cadastrar Novo Paciente'; // Reseta o título
+                pacienteIdEmEdicao = null; 
+                modalTituloPaciente.textContent = 'Cadastrar Novo Paciente'; 
                 modalPacienteContainer.style.display = 'flex';
             };
             modalPacienteClose.onclick = () => {
                 modalPacienteContainer.style.display = 'none';
-                pacienteIdEmEdicao = null; // Limpa o ID em edição ao fechar
+                pacienteIdEmEdicao = null; 
             }
             
-            // [FUNÇÃO MODIFICADA] para lidar com CRIAR (POST) e ATUALIZAR (PATCH)
             formNovoPaciente.onsubmit = async (event) => {
                 event.preventDefault(); 
                 
                 let dataNasc = document.getElementById('paciente-nasc').value;
                 let sexo = document.getElementById('paciente-sexo').value;
 
-                // Monta o objeto com os dados do formulário
                 const dadosPaciente = {
                     nome: document.getElementById('paciente-nome').value,
                     telefone: document.getElementById('paciente-telefone').value,
@@ -740,18 +771,16 @@
                     diagnostico_medico: document.getElementById('paciente-diag').value
                 };
 
-                // Validação do nome
                 if (!dadosPaciente.nome) {
                     alert('O campo Nome Completo é obrigatório.');
                     return;
                 }
 
-                // Define o método e a URL com base no modo (Criação vs Edição)
                 let method = 'POST';
                 let url = `${API_URL}/pacientes`;
                 
                 if (pacienteIdEmEdicao) {
-                    method = 'PATCH'; // Usamos PATCH para atualização parcial
+                    method = 'PATCH'; 
                     url = `${API_URL}/pacientes/${pacienteIdEmEdicao}`;
                 }
                 
@@ -766,24 +795,20 @@
                         const pacienteAtualizado = await response.json();
                         
                         if (pacienteIdEmEdicao) {
-                            // MODO EDIÇÃO: Atualiza o paciente no cache
                             alert(`Paciente "${pacienteAtualizado.nome}" atualizado com sucesso!`);
-                            // Encontra o índice do paciente antigo e o substitui
                             const index = listaDePacientesCache.findIndex(p => p.id === pacienteIdEmEdicao);
                             if (index !== -1) {
                                 listaDePacientesCache[index] = pacienteAtualizado;
                             }
                         } else {
-                            // MODO CRIAÇÃO: Adiciona o novo paciente ao cache
                             alert(`Paciente "${pacienteAtualizado.nome}" cadastrado com sucesso! \nNovo ID: ${pacienteAtualizado.id}`);
                             listaDePacientesCache.push(pacienteAtualizado);
                         }
                         
                         formNovoPaciente.reset();
                         modalPacienteContainer.style.display = 'none';
-                        pacienteIdEmEdicao = null; // Limpa o ID
+                        pacienteIdEmEdicao = null; 
                         
-                        // Fecha o modal de lista para forçar a reabertura com dados novos
                         modalListaPacientesContainer.style.display = 'none'; 
                     } else {
                         const error = await response.json();
@@ -840,7 +865,6 @@
                     listaDePacientesCache.forEach(paciente => {
                         const tr = document.createElement('tr');
                         
-                        // Célula do Histórico (clique na linha)
                         const tdId = document.createElement('td');
                         tdId.textContent = paciente.id;
                         const tdNome = document.createElement('td');
@@ -850,17 +874,16 @@
                         
                         [tdId, tdNome, tdTel].forEach(td => {
                             td.onclick = () => abrirHistoricoPaciente(paciente.id, paciente.nome);
-                            td.style.cursor = 'pointer'; // Mantém o cursor
+                            td.style.cursor = 'pointer'; 
                         });
 
-                        // [NOVO] Célula de Ações (com botões)
                         const tdAcoes = document.createElement('td');
                         
                         const btnEditar = document.createElement('button');
                         btnEditar.textContent = '✏️';
                         btnEditar.className = 'btn-acao btn-acao-edit';
                         btnEditar.onclick = (e) => {
-                            e.stopPropagation(); // Impede que o clique abra o histórico
+                            e.stopPropagation(); 
                             handleEditarPaciente(paciente);
                         };
 
@@ -868,7 +891,7 @@
                         btnExcluir.textContent = '🗑️';
                         btnExcluir.className = 'btn-acao btn-acao-delete';
                         btnExcluir.onclick = (e) => {
-                            e.stopPropagation(); // Impede que o clique abra o histórico
+                            e.stopPropagation(); 
                             handleExcluirPaciente(paciente.id, paciente.nome);
                         };
 
@@ -878,7 +901,7 @@
                         tr.appendChild(tdId);
                         tr.appendChild(tdNome);
                         tr.appendChild(tdTel);
-                        tr.appendChild(tdAcoes); // Adiciona a nova célula
+                        tr.appendChild(tdAcoes); 
                         
                         listaPacientesTbody.appendChild(tr);
                     });
@@ -887,21 +910,16 @@
             };
             modalListaPacientesClose.onclick = () => modalListaPacientesContainer.style.display = 'none';
 
-            // --- [NOVAS] FUNÇÕES DE AÇÃO (EDITAR E EXCLUIR) ---
+            // --- FUNÇÕES DE AÇÃO (EDITAR E EXCLUIR) ---
 
             function handleEditarPaciente(paciente) {
-                // 1. Fecha o modal da lista
                 modalListaPacientesContainer.style.display = 'none';
-                
-                // 2. Define o ID de edição (para o onsubmit saber)
                 pacienteIdEmEdicao = paciente.id;
                 
-                // 3. Preenche o formulário com os dados do paciente
                 modalTituloPaciente.textContent = `Editando Paciente: ${paciente.nome}`;
                 document.getElementById('paciente-nome').value = paciente.nome;
                 document.getElementById('paciente-telefone').value = paciente.telefone || '';
                 
-                // Corrige o formato da data (API envia YYYY-MM-DD)
                 if (paciente.data_nascimento && paciente.data_nascimento.includes('T')) {
                      document.getElementById('paciente-nasc').value = paciente.data_nascimento.split('T')[0];
                 } else if (paciente.data_nascimento) {
@@ -913,7 +931,6 @@
                 document.getElementById('paciente-sexo').value = paciente.sexo || '';
                 document.getElementById('paciente-diag').value = paciente.diagnostico_medico || '';
                 
-                // 4. Abre o modal de cadastro (agora em modo de edição)
                 modalPacienteContainer.style.display = 'flex';
             }
 
@@ -929,14 +946,12 @@
 
                     if (response.ok) {
                         alert(`Paciente "${pacienteNome}" excluído com sucesso.`);
-                        // Remove o paciente do cache local
                         listaDePacientesCache = listaDePacientesCache.filter(p => p.id !== pacienteId);
-                        // Fecha o modal da lista (para recarregar na próxima vez)
                         modalListaPacientesContainer.style.display = 'none';
                     } else {
                         const error = await response.json();
                         console.error('Erro ao excluir:', error);
-                        alert(`Erro ao excluir paciente: ${JSON.stringify(error.detail)}\n\n(Lembre-se: você não pode excluir um paciente que tenha agendamentos. Cancele-os primeiro ou ajuste a API).`);
+                        alert(`Erro ao excluir paciente: ${JSON.stringify(error.detail)}\n\n(Lembre-se: você não pode excluir um paciente que tenha agendamentos. Exclua-os permanentemente primeiro).`);
                     }
                 } catch (error) {
                     console.error('Erro de rede ao excluir:', error);
@@ -989,7 +1004,7 @@
                 if (event.target == modalContainer) modalContainer.style.display = 'none';
                 if (event.target == modalPacienteContainer) {
                     modalPacienteContainer.style.display = 'none';
-                    pacienteIdEmEdicao = null; // Limpa o ID em edição
+                    pacienteIdEmEdicao = null; 
                 }
                 if (event.target == modalDashboardContainer) modalDashboardContainer.style.display = 'none';
                 if (event.target == modalListaPacientesContainer) modalListaPacientesContainer.style.display = 'none';
