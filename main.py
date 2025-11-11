@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload # Importe o joinedload
-from sqlalchemy import func, extract
+from sqlalchemy import func, extract # Importe func e extract
 from typing import List
 from datetime import datetime
 
@@ -24,7 +24,7 @@ origins = [
     "http://localhost",
     "http://127.0.0.1",
     "null",
-    "https://alvarohs84.github.io"  # <-- ADICIONE ESTA LINHA
+    "https://alvarohs84.github.io"  # URL do seu frontend no GitHub Pages
 ]
 
 app.add_middleware(
@@ -176,7 +176,8 @@ def listar_evolucoes_do_agendamento(agendamento_id: int, db: Session = Depends(g
         
     return agendamento.evolucoes
 
-# ENDPOINT DE DASHBOARD
+# ===============================================
+# ENDPOINT DE DASHBOARD (CORRIGIDO)
 # ===============================================
 
 @app.get("/dashboard/sessoes-por-mes", response_model=List[schemas.SessaoDashboard])
@@ -186,16 +187,16 @@ def get_dashboard_sessoes(ano: int, mes: int, db: Session = Depends(get_db)):
     em um determinado mês e ano.
     """
     try:
-        # Consulta o banco
+        # Consulta o banco (Indentação corrigida)
         resultados = db.query(
             models.Paciente.nome.label("nome_paciente"),
             func.count(models.Agendamento.id).label("total_sessoes")
-        ).join(models.Paciente, models.Agendamento.paciente_id == models.Paciente.id)
-         .filter(models.Agendamento.status == schemas.StatusAgendamento.presente) # Apenas sessões realizadas
-         .filter(extract('year', models.Agendamento.data_hora_inicio) == ano) # Filtra pelo ano
-         .filter(extract('month', models.Agendamento.data_hora_inicio) == mes) # Filtra pelo mês
-         .group_by(models.Paciente.nome) # Agrupa por paciente
-         .order_by(func.count(models.Agendamento.id).desc()) # Ordena por quem teve mais sessões
+        ).join(models.Paciente, models.Agendamento.paciente_id == models.Paciente.id) \
+         .filter(models.Agendamento.status == schemas.StatusAgendamento.presente) \
+         .filter(extract('year', models.Agendamento.data_hora_inicio) == ano) \
+         .filter(extract('month', models.Agendamento.data_hora_inicio) == mes) \
+         .group_by(models.Paciente.nome) \
+         .order_by(func.count(models.Agendamento.id).desc()) \
          .all()
         
         return resultados
