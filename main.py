@@ -6,7 +6,8 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, Text, Enum as PyEnum
 from sqlalchemy.orm import sessionmaker, Session, relationship
-from sqlalchemy.ext.declarativa import declarative_base
+# [CORREÇÃO APLICADA AQUI]
+from sqlalchemy.orm import declarative_base 
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, date
@@ -29,7 +30,7 @@ class Paciente(Base):
     id = Column(Integer, primary_key=True, index=True)
     nome = Column(String, index=True, nullable=False)
     telefone = Column(String, nullable=True)
-    data_nascimento = Column(DateTime, nullable=True) # Alterado para DateTime
+    data_nascimento = Column(DateTime, nullable=True) 
     sexo = Column(String, nullable=True)
     diagnostico_medico = Column(String, nullable=True)
     
@@ -44,8 +45,6 @@ class Agendamento(Base):
     status = Column(PyEnum('Agendado', 'Presente', 'Cancelado', name='status_agendamento'), default='Agendado')
     
     # [CORREÇÃO CRÍTICA ondelete="CASCADE"]
-    # Isso faz com que, ao deletar um Paciente, todos os seus Agendamentos
-    # sejam deletados automaticamente.
     paciente_id = Column(Integer, ForeignKey('pacientes.id', ondelete="CASCADE"), nullable=False)
     
     paciente = relationship("Paciente", back_populates="agendamentos")
@@ -100,7 +99,7 @@ class AgendamentoSchema(BaseModel):
     data_hora_inicio: datetime
     data_hora_fim: datetime
     status: str
-    paciente: PacienteSchema # Permite o frontend ver os dados do paciente
+    paciente: PacienteSchema 
     
     class Config:
         orm_mode = True
@@ -121,13 +120,11 @@ class EvolucaoSchema(BaseModel):
 
 app = FastAPI(title="Minha Agenda API")
 
-# IMPORTANTE: Configuração do CORS para permitir que seu site
-# no github.io fale com esta API no render.com
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permite todas as origens (ou restrinja para o seu github.io)
+    allow_origins=["*"],  
     allow_credentials=True,
-    allow_methods=["*"],  # Permite todos os métodos (GET, POST, DELETE, etc)
+    allow_methods=["*"],  
     allow_headers=["*"],
 )
 
@@ -146,7 +143,6 @@ def get_db():
 
 @app.post("/pacientes", response_model=PacienteSchema, status_code=status.HTTP_201_CREATED)
 def criar_paciente(paciente: PacienteCreate, db: Session = Depends(get_db)):
-    # Converte data (Pydantic) para datetime (SQLAlchemy)
     data_nasc = datetime.combine(paciente.data_nascimento, datetime.min.time()) if paciente.data_nascimento else None
     
     db_paciente = Paciente(
@@ -172,7 +168,6 @@ def atualizar_paciente(paciente_id: int, paciente: PacienteCreate, db: Session =
     if db_paciente is None:
         raise HTTPException(status_code=404, detail="Paciente not found")
     
-    # Atualiza os dados
     db_paciente.nome = paciente.nome
     db_paciente.telefone = paciente.telefone
     db_paciente.data_nascimento = datetime.combine(paciente.data_nascimento, datetime.min.time()) if paciente.data_nascimento else None
@@ -183,7 +178,6 @@ def atualizar_paciente(paciente_id: int, paciente: PacienteCreate, db: Session =
     db.refresh(db_paciente)
     return db_paciente
 
-# [ROTA QUE ESTAVA FALTANDO]
 @app.delete("/pacientes/{paciente_id}", status_code=status.HTTP_200_OK)
 def deletar_paciente(paciente_id: int, db: Session = Depends(get_db)):
     db_paciente = db.query(Paciente).filter(Paciente.id == paciente_id).first()
@@ -195,7 +189,6 @@ def deletar_paciente(paciente_id: int, db: Session = Depends(get_db)):
         db.commit()
     except Exception as e:
         db.rollback()
-        # Este erro acontece se você NÃO tiver o ondelete="CASCADE"
         raise HTTPException(status_code=400, detail=f"Erro ao deletar: Este paciente pode ter agendamentos. {e}")
         
     return {"detail": "Paciente deletado com sucesso"}
@@ -278,7 +271,6 @@ def criar_evolucao(agendamento_id: int, evolucao: EvolucaoCreate, db: Session = 
     if db_agendamento is None:
         raise HTTPException(status_code=404, detail="Agendamento not found")
     
-    # Verifica se já existe uma evolução (não permite duas)
     if db_agendamento.evolucao:
         raise HTTPException(status_code=400, detail="Este agendamento já possui uma evolução")
 
@@ -304,9 +296,6 @@ def listar_evolucoes_paciente(paciente_id: int, db: Session = Depends(get_db)):
 
 @app.get("/dashboard/sessoes-por-mes", response_model=List[DashboardSessao])
 def get_dashboard_sessoes(ano: int, mes: int, db: Session = Depends(get_db)):
-    # Esta é uma query complexa que conta agendamentos "Presentes"
-    # por paciente, filtrando por mês e ano.
-    
     from sqlalchemy import func, extract
     
     resultados = db.query(
