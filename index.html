@@ -421,7 +421,6 @@
             const modalNovoAgendamento = document.getElementById('modal-novo-agendamento');
             const modalNovoAgendamentoClose = document.getElementById('modal-novo-agendamento-close');
             const formNovoAgendamento = document.getElementById('form-novo-agendamento');
-            // [MODIFICADO] Seletores para o input e datalist
             const inputPaciente = document.getElementById('input-paciente');
             const pacienteDataList = document.getElementById('paciente-list');
             const novoAgendamentoHorario = document.getElementById('novo-agendamento-horario');
@@ -614,32 +613,26 @@
 
             // --- FUNÇÕES DO CALENDÁRIO ---
             
-            // [FUNÇÃO MODIFICADA] para usar o <datalist>
             async function handleSelectTime(selectionInfo) {
-                // 1. Salva as informações de data/hora
                 currentSelectionInfo = selectionInfo;
 
-                // 2. Limpa e Popula a <datalist>
-                pacienteDataList.innerHTML = ''; // Limpa opções antigas
-                listaDePacientesCache.sort((a, b) => a.nome.localeCompare(b.nome)); // Ordena
+                pacienteDataList.innerHTML = ''; 
+                listaDePacientesCache.sort((a, b) => a.nome.localeCompare(b.nome)); 
                 listaDePacientesCache.forEach(paciente => {
                     const option = document.createElement('option');
                     option.value = paciente.nome; 
                     pacienteDataList.appendChild(option);
                 });
 
-                // 3. Limpa o valor anterior do input
                 inputPaciente.value = '';
 
-                // 4. Mostra o horário no modal
                 const inicio = selectionInfo.start.toLocaleString('pt-BR', { timeStyle: 'short' });
                 const fim = selectionInfo.end.toLocaleString('pt-BR', { timeStyle: 'short' });
                 const dia = selectionInfo.start.toLocaleString('pt-BR', { dateStyle: 'short' });
                 novoAgendamentoHorario.textContent = `${dia} - ${inicio} às ${fim}`;
 
-                // 5. Abre o modal
                 modalNovoAgendamento.style.display = 'flex';
-                inputPaciente.focus(); // Foca no campo de busca
+                inputPaciente.focus(); 
             }
 
             function handleEventClick(clickInfo) {
@@ -663,6 +656,7 @@
                 modalContainer.style.display = 'flex';
             }
 
+            // [FUNÇÃO CORRIGIDA]
             async function handleEventDrop(dropInfo) {
                 const event = dropInfo.event;
                 const agendamentoId = event.id;
@@ -672,7 +666,7 @@
                 }
                 const updateData = {
                     data_hora_inicio: event.start.toISOString(),
-                    data_hora_fim: event.end ? event.end.toISOString() : event.start.toISOString()
+                    data_hora_fim: event.end ? event.end.toISOString() : event.start.toISOString() 
                 };
                 try {
                     const response = await fetch(`${API_URL}/agendamentos/${agendamentoId}`, {
@@ -682,7 +676,8 @@
                     });
                     if (response.ok) {
                         alert('Agendamento atualizado com sucesso!');
-                        calendar.refetchEvents();
+                        // [CORREÇÃO APLICADA AQUI]
+                        calendar.refetchEvents(); // Força a agenda a recarregar
                     } else {
                         alert('Erro ao atualizar o agendamento.');
                         dropInfo.revert();
@@ -893,11 +888,9 @@
                 currentSelectionInfo = null; 
             }
             
-            // [FUNÇÃO MODIFICADA] para usar o <datalist>
             formNovoAgendamento.onsubmit = async (event) => {
                 event.preventDefault();
                 
-                // 1. Pega o nome do input
                 const nomePaciente = inputPaciente.value;
                 
                 if (!nomePaciente) {
@@ -905,7 +898,6 @@
                     return;
                 }
 
-                // 2. Encontra o paciente no cache pelo nome
                 const pacienteEncontrado = listaDePacientesCache.find(
                     p => p.nome.toLowerCase() === nomePaciente.toLowerCase().trim()
                 );
@@ -915,7 +907,7 @@
                     return;
                 }
                 
-                const pacienteId = pacienteEncontrado.id; // Pega o ID
+                const pacienteId = pacienteEncontrado.id; 
                 
                 if (!currentSelectionInfo) {
                     alert('Erro: Nenhuma informação de horário encontrada. Tente clicar novamente.');
@@ -923,7 +915,7 @@
                 }
 
                 const novoAgendamento = {
-                    paciente_id: pacienteId, // Já é um número
+                    paciente_id: pacienteId, 
                     data_hora_inicio: currentSelectionInfo.start.toISOString(),
                     data_hora_fim: currentSelectionInfo.end.toISOString()
                 };
