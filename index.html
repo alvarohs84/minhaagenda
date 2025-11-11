@@ -19,7 +19,6 @@
             cursor: pointer;
         }
 
-        /* Cabeçalho com botões */
         .header-controls {
             display: flex;
             justify-content: space-between;
@@ -28,7 +27,7 @@
             margin: 0 auto;
             margin-bottom: 20px;
         }
-        .header-controls button { /* Estilo geral para botões no cabeçalho */
+        .header-controls button {
             font-size: 0.9em;
             padding: 10px 15px;
             border-radius: 5px;
@@ -36,20 +35,15 @@
             cursor: pointer;
             color: white;
             font-weight: bold;
-            margin-left: 10px; /* Espaçamento entre botões */
+            margin-left: 10px;
         }
         #btn-abrir-modal-paciente {
-            background-color: #17a2b8; /* Ciano */
+            background-color: #17a2b8;
         }
-        
-        /* --- NOVO: Botão Dashboard --- */
         #btn-abrir-dashboard {
-            background-color: #6f42c1; /* Roxo */
+            background-color: #6f42c1;
         }
-        /* --- FIM NOVO --- */
-        
 
-        /* --- CSS DO MODAL (Genérico) --- */
         .modal-container {
             display: none;
             position: fixed;
@@ -100,6 +94,7 @@
         }
         
         #btn-checkin { background-color: #28a745; color: white; }
+        #btn-cancelar { background-color: #ffc107; color: black; } 
         #btn-gravar { background-color: #dc3545; color: white; }
         #btn-salvar-evolucao { background-color: #007bff; color: white; }
         #status-gravacao { font-style: italic; color: #555; }
@@ -130,7 +125,6 @@
             margin-top: 20px;
         }
 
-        /* --- NOVO: Estilos do Dashboard --- */
         #dashboard-filtros {
             display: flex;
             gap: 15px;
@@ -159,8 +153,6 @@
             display: none;
             font-style: italic;
         }
-        /* --- FIM NOVO --- */
-
     </style>
 </head>
 <body>
@@ -182,7 +174,10 @@
             <p><strong>Diagnóstico:</strong> <span id="modal-paciente-diagnostico"></span></p>
             <p><strong>Telefone:</strong> <span id="modal-paciente-telefone"></span></p>
             <p><strong>Status:</strong> <span id="modal-agendamento-status"></span></p>
+            
             <button id="btn-checkin">Fazer Check-in</button>
+            <button id="btn-cancelar">Cancelar Atendimento</button>
+            
             <hr style="margin-top: 20px;">
             <h4>Evolução da Sessão</h4>
             <textarea id="texto-evolucao" placeholder="Digite ou grave a evolução..."></textarea>
@@ -220,34 +215,27 @@
         <div class="modal-content">
             <span class="modal-close" id="modal-dashboard-close">&times;</span>
             <h3>Dashboard de Sessões Realizadas</h3>
-            
             <div id="dashboard-filtros">
                 <label for="dash-mes">Mês:</label>
                 <select id="dash-mes"></select>
-                
                 <label for="dash-ano">Ano:</label>
                 <select id="dash-ano"></select>
-                
                 <button id="btn-buscar-dashboard">Buscar</button>
             </div>
-            
             <p id="loading-dashboard">Carregando dados...</p>
-            
-            <div id="dashboard-resultados">
-                </div>
+            <div id="dashboard-resultados"></div>
         </div>
     </div>
+
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var calendarEl = document.getElementById('calendar');
             
-            // APONTANDO PARA A SUA API NO RENDER
             const API_URL = 'https://minhaagenda.onrender.com';
-            
-            // --- Cache de Pacientes ---
             let listaDePacientesCache = [];
             
-            // --- Seletores de Elementos (Modal Agendamento) ---
+            // --- Seletores (Modal Agendamento) ---
             const modalContainer = document.getElementById('modal-container');
             const modalAgendamentoClose = document.getElementById('modal-agendamento-close');
             let currentAgendamentoId = null; 
@@ -260,14 +248,15 @@
             const btnSalvarEvolucao = document.getElementById('btn-salvar-evolucao');
             const textoEvolucao = document.getElementById('texto-evolucao');
             const statusGravacao = document.getElementById('status-gravacao');
-            
-            // --- Seletores de Elementos (Modal Paciente) ---
+            const btnCancelar = document.getElementById('btn-cancelar');
+
+            // --- Seletores (Modal Paciente) ---
             const btnAbrirModalPaciente = document.getElementById('btn-abrir-modal-paciente');
             const modalPacienteContainer = document.getElementById('modal-paciente-container');
             const modalPacienteClose = document.getElementById('modal-paciente-close');
             const formNovoPaciente = document.getElementById('form-novo-paciente');
 
-            // --- NOVO: Seletores de Elementos (Modal Dashboard) ---
+            // --- Seletores (Modal Dashboard) ---
             const btnAbrirDashboard = document.getElementById('btn-abrir-dashboard');
             const modalDashboardContainer = document.getElementById('modal-dashboard-container');
             const modalDashboardClose = document.getElementById('modal-dashboard-close');
@@ -276,7 +265,6 @@
             const btnBuscarDashboard = document.getElementById('btn-buscar-dashboard');
             const loadingDashboard = document.getElementById('loading-dashboard');
             const dashboardResultados = document.getElementById('dashboard-resultados');
-            // --- FIM NOVO ---
 
             // --- LÓGICA DO CALENDÁRIO ---
             var calendar = new FullCalendar.Calendar(calendarEl, {
@@ -298,56 +286,48 @@
                 eventClick: handleEventClick,
                 events: `${API_URL}/agendamentos`,
                 eventDataTransform: function(apiEvent) {
+                    // Lógica de Cor
+                    let color = '#3788d8'; // Azul (Agendado)
+                    if (apiEvent.status === 'Presente') color = '#2ca02c'; // Verde
+                    if (apiEvent.status === 'Cancelado') color = '#6c757d'; // Cinza
+                    
                     return {
                         id: apiEvent.id,
                         title: `${apiEvent.paciente.nome} (${apiEvent.status})`, 
                         start: apiEvent.data_hora_inicio,
                         end: apiEvent.data_hora_fim,
                         extendedProps: { apiEvent: apiEvent },
-                        color: apiEvent.status === 'Presente' ? '#2ca02c' : '#3788d8'
+                        color: color // Aplica a cor
                     };
                 }
             });
 
             // --- FUNÇÕES DE INICIALIZAÇÃO ---
-            
-            // Carrega o cache de pacientes
             async function carregarPacientes() {
                 try {
                     const response = await fetch(`${API_URL}/pacientes`);
                     if (response.ok) {
                         listaDePacientesCache = await response.json();
-                        console.log('Cache de pacientes carregado:', listaDePacientesCache);
+                        console.log('Cache de pacientes carregado.');
                     } else { console.error('Erro ao carregar pacientes.'); }
                 } catch (error) { console.error('Erro de rede ao carregar pacientes:', error); }
             }
 
-            // --- NOVO: Preenche os filtros de data do Dashboard ---
             function popularFiltrosDashboard() {
                 const hoje = new Date();
-                const mesAtual = hoje.getMonth(); // 0-11
+                const mesAtual = hoje.getMonth();
                 const anoAtual = hoje.getFullYear();
-
                 const nomesMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-                
-                // Popula Meses
                 nomesMeses.forEach((nome, index) => {
-                    const option = new Option(nome, index + 1); // Valor é 1-12
-                    selectMes.add(option);
+                    selectMes.add(new Option(nome, index + 1));
                 });
-                selectMes.value = mesAtual + 1; // Define o mês atual
-
-                // Popula Anos (Ano atual + últimos 5 anos)
+                selectMes.value = mesAtual + 1;
                 for (let i = 0; i < 5; i++) {
-                    const ano = anoAtual - i;
-                    const option = new Option(ano, ano);
-                    selectAno.add(option);
+                    selectAno.add(new Option(anoAtual - i, anoAtual - i));
                 }
                 selectAno.value = anoAtual;
             }
-            // --- FIM NOVO ---
             
-            // Inicializa a aplicação
             carregarPacientes().then(() => {
                 calendar.render();
                 popularFiltrosDashboard();
@@ -355,11 +335,9 @@
 
             // --- FUNÇÕES DO CALENDÁRIO ---
             
-            // (CRIAR AGENDAMENTO)
             async function handleSelectTime(selectionInfo) {
                 let nomePaciente = prompt('Digite o NOME do paciente para agendar:');
                 if (!nomePaciente) return;
-
                 const pacienteEncontrado = listaDePacientesCache.find(
                     p => p.nome.toLowerCase() === nomePaciente.trim().toLowerCase()
                 );
@@ -367,13 +345,11 @@
                     alert('Paciente não encontrado. Verifique o nome ou cadastre-o primeiro.');
                     return;
                 }
-                
                 const novoAgendamento = {
                     paciente_id: pacienteEncontrado.id,
                     data_hora_inicio: selectionInfo.start.toISOString(),
                     data_hora_fim: selectionInfo.end.toISOString()
                 };
-
                 try {
                     const response = await fetch(`${API_URL}/agendamentos`, {
                         method: 'POST',
@@ -401,17 +377,18 @@
                 textoEvolucao.value = '';
                 statusGravacao.textContent = '';
                 
+                // Lógica dos botões Check-in e Cancelar
                 if (apiEvent.status === 'Agendado') {
-                    btnCheckin.disabled = false;
                     btnCheckin.style.display = 'inline-block';
+                    btnCancelar.style.display = 'inline-block';
                 } else {
-                    btnCheckin.disabled = true;
                     btnCheckin.style.display = 'none';
+                    btnCancelar.style.display = 'none';
                 }
                 modalContainer.style.display = 'flex';
             }
 
-            // --- LÓGICA DO MODAL DE AGENDAMENTO (CHECK-IN, VOZ, SALVAR) ---
+            // --- LÓGICA DO MODAL DE AGENDAMENTO ---
             modalAgendamentoClose.onclick = () => modalContainer.style.display = 'none';
             btnCheckin.onclick = async () => {
                 try {
@@ -426,6 +403,28 @@
                     }
                 } catch (error) { console.error('Erro de rede:', error); }
             };
+            
+            // Lógica Botão Cancelar
+            btnCancelar.onclick = async () => {
+                if (!confirm("Tem certeza que deseja CANCELAR este atendimento?")) {
+                    return;
+                }
+                try {
+                    const response = await fetch(`${API_URL}/agendamentos/${currentAgendamentoId}/cancelar`, { method: 'POST' });
+                    if (response.ok) {
+                        alert('Agendamento cancelado com sucesso!');
+                        modalContainer.style.display = 'none';
+                        calendar.refetchEvents();
+                    } else {
+                        const error = await response.json();
+                        alert(`Erro ao cancelar: ${error.detail}`);
+                    }
+                } catch (error) { 
+                    console.error('Erro de rede:', error); 
+                    alert('Erro ao conectar com a API.');
+                }
+            };
+            
             btnSalvarEvolucao.onclick = async () => {
                 const texto = textoEvolucao.value;
                 if (!texto) { alert('O campo de evolução está vazio.'); return; }
@@ -531,36 +530,23 @@
                 }
             };
 
-            // --- NOVO: LÓGICA DO MODAL DASHBOARD ---
-            
-            // (Abrir Modal)
+            // --- LÓGICA DO MODAL DASHBOARD ---
             btnAbrirDashboard.onclick = () => {
-                dashboardResultados.innerHTML = ""; // Limpa resultados anteriores
+                dashboardResultados.innerHTML = "";
                 modalDashboardContainer.style.display = 'flex';
             };
-
-            // (Fechar Modal)
             modalDashboardClose.onclick = () => modalDashboardContainer.style.display = 'none';
-            
-            // (Buscar Dados)
             btnBuscarDashboard.onclick = async () => {
                 const ano = selectAno.value;
                 const mes = selectMes.value;
-                
-                loadingDashboard.style.display = 'block'; // Mostra "Carregando..."
-                dashboardResultados.innerHTML = ""; // Limpa tabela antiga
-                
+                loadingDashboard.style.display = 'block';
+                dashboardResultados.innerHTML = "";
                 try {
-                    // Chama o novo endpoint da API
                     const response = await fetch(`${API_URL}/dashboard/sessoes-por-mes?ano=${ano}&mes=${mes}`);
-                    
                     if (!response.ok) {
                         throw new Error('Erro ao buscar dados do dashboard.');
                     }
-                    
                     const dados = await response.json();
-                    
-                    // Constrói a tabela de resultados
                     if (dados.length === 0) {
                         dashboardResultados.innerHTML = "<p>Nenhuma sessão realizada encontrada para este período.</p>";
                     } else {
@@ -571,16 +557,13 @@
                         tabelaHTML += "</table>";
                         dashboardResultados.innerHTML = tabelaHTML;
                     }
-
                 } catch (error) {
                     console.error('Erro no dashboard:', error);
                     dashboardResultados.innerHTML = "<p style='color: red;'>Erro ao carregar dados.</p>";
                 } finally {
-                    loadingDashboard.style.display = 'none'; // Esconde "Carregando..."
+                    loadingDashboard.style.display = 'none';
                 }
             };
-            // --- FIM NOVO ---
-
 
             // (Fechar Modais ao clicar fora)
             window.onclick = (event) => {
@@ -590,7 +573,6 @@
                 if (event.target == modalPacienteContainer) {
                     modalPacienteContainer.style.display = 'none';
                 }
-                // NOVO:
                 if (event.target == modalDashboardContainer) {
                     modalDashboardContainer.style.display = 'none';
                 }

@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload # Importe o joinedload
-from sqlalchemy import func, extract # Importe func e extract
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func, extract
 from typing import List
 from datetime import datetime
 
@@ -31,7 +31,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"], # Permite todos os métodos (GET, POST, etc)
+    allow_methods=["*"], # Permite todos os métodos
     allow_headers=["*"], # Permite todos os cabeçalhos
 )
 
@@ -102,12 +102,9 @@ def listar_agendamentos(db: Session = Depends(get_db)):
     Retorna uma lista de todos os agendamentos,
     incluindo os dados do paciente associado.
     """
-    # ATUALIZADO: Usamos .options(joinedload(...)) para forçar o JOIN
-    # e carregar os dados do paciente imediatamente.
     agendamentos = db.query(models.Agendamento).options(
         joinedload(models.Agendamento.paciente)
     ).all()
-    
     return agendamentos
 
 @app.post("/agendamentos/{agendamento_id}/checkin", response_model=schemas.Agendamento)
@@ -116,20 +113,32 @@ def fazer_checkin_agendamento(agendamento_id: int, db: Session = Depends(get_db)
     Realiza o check-in de um agendamento, mudando seu status para 'Presente'.
     """
     agendamento = get_agendamento_by_id(db, agendamento_id)
+    if not agendamento:
+        raise HTTPException(status_code=404, detail=f"Agendamento com ID {agendamento_id} não encontrado.")
+    if agendamento.status == schemas.StatusAgendamento.presente:
+        raise HTTPException(status_code=400, detail="Check-in já realizado para este agendamento.")
+    
+    agendamento.status = schemas.StatusAgendamento.presente
+    db.commit()
+    db.refresh(agendamento)
+    return agendamento
+
+@app.post("/agendamentos/{agendamento_id}/cancelar", response_model=schemas.Agendamento)
+def cancelar_agendamento(agendamento_id: int, db: Session = Depends(get_db)):
+    """
+    Cancela um agendamento, mudando seu status para 'Cancelado'.
+    """
+    agendamento = get_agendamento_by_id(db, agendamento_id)
     
     if not agendamento:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Agendamento com ID {agendamento_id} não encontrado."
-        )
+        raise HTTPException(status_code=404, detail="Agendamento não encontrado.")
             
     if agendamento.status == schemas.StatusAgendamento.presente:
-        raise HTTPException(
-            status_code=400,
-            detail="Check-in já realizado para este agendamento."
-        )
+        raise HTTPException(status_code=400, detail="Não é possível cancelar um agendamento que já ocorreu.")
+    if agendamento.status == schemas.StatusAgendamento.cancelado:
+        return agendamento # Já está cancelado
 
-    agendamento.status = schemas.StatusAgendamento.presente
+    agendamento.status = schemas.StatusAgendamento.cancelado
     
     db.commit()
     db.refresh(agendamento)
@@ -141,22 +150,15 @@ def fazer_checkin_agendamento(agendamento_id: int, db: Session = Depends(get_db)
 
 @app.post("/agendamentos/{agendamento_id}/evolucoes", response_model=schemas.Evolucao, status_code=201)
 def criar_evolucao(agendamento_id: int, evolucao: schemas.EvolucaoCreate, db: Session = Depends(get_db)):
-    """
-    Cria uma nova nota de evolução para um agendamento específico.
-    """
     agendamento = get_agendamento_by_id(db, agendamento_id)
     if not agendamento:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Agendamento com ID {agendamento_id} não encontrado."
-        )
+        raise HTTPException(status_code=404, detail=f"Agendamento com ID {agendamento_id} não encontrado.")
         
     db_evolucao = models.Evolucao(
         agendamento_id=agendamento_id,
         data_criacao=datetime.now(),
         **evolucao.model_dump()
     )
-    
     db.add(db_evolucao)
     db.commit()
     db.refresh(db_evolucao)
@@ -164,20 +166,13 @@ def criar_evolucao(agendamento_id: int, evolucao: schemas.EvolucaoCreate, db: Se
 
 @app.get("/agendamentos/{agendamento_id}/evolucoes", response_model=List[schemas.Evolucao])
 def listar_evolucoes_do_agendamento(agendamento_id: int, db: Session = Depends(get_db)):
-    """
-    Lista todas as notas de evolução de um agendamento específico.
-    """
     agendamento = get_agendamento_by_id(db, agendamento_id)
     if not agendamento:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Agendamento com ID {agendamento_id} não encontrado."
-        )
-        
+        raise HTTPException(status_code=404, detail=f"Agendamento com ID {agendamento_id} não encontrado.")
     return agendamento.evolucoes
 
 # ===============================================
-# ENDPOINT DE DASHBOARD (CORRIGIDO)
+# ENDPOINT DE DASHBOARD
 # ===============================================
 
 @app.get("/dashboard/sessoes-por-mes", response_model=List[schemas.SessaoDashboard])
@@ -187,7 +182,6 @@ def get_dashboard_sessoes(ano: int, mes: int, db: Session = Depends(get_db)):
     em um determinado mês e ano.
     """
     try:
-        # Consulta o banco (Indentação corrigida)
         resultados = db.query(
             models.Paciente.nome.label("nome_paciente"),
             func.count(models.Agendamento.id).label("total_sessoes")
@@ -202,6 +196,5 @@ def get_dashboard_sessoes(ano: int, mes: int, db: Session = Depends(get_db)):
         return resultados
     
     except Exception as e:
-        # Se der erro no banco, informa o servidor
         print(f"Erro no dashboard: {e}") 
         raise HTTPException(status_code=500, detail="Erro ao processar a consulta do dashboard.")
