@@ -19,6 +19,7 @@
             cursor: pointer;
         }
 
+        /* Cabeçalho com botões */
         .header-controls {
             display: flex;
             justify-content: space-between;
@@ -38,12 +39,20 @@
             margin-left: 10px;
         }
         #btn-abrir-modal-paciente {
-            background-color: #17a2b8;
+            background-color: #17a2b8; /* Ciano */
         }
         #btn-abrir-dashboard {
-            background-color: #6f42c1;
+            background-color: #6f42c1; /* Roxo */
         }
+        
+        /* --- NOVO: Botão Lista de Pacientes --- */
+        #btn-abrir-lista-pacientes {
+            background-color: #28a745; /* Verde */
+        }
+        /* --- FIM NOVO --- */
+        
 
+        /* --- CSS DO MODAL (Genérico) --- */
         .modal-container {
             display: none;
             position: fixed;
@@ -125,6 +134,22 @@
             margin-top: 20px;
         }
 
+        /* Tabela genérica (para Dashboard e Lista de Pacientes) */
+        .modal-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .modal-table th, .modal-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .modal-table th {
+            background-color: #f2f2f2;
+        }
+
+        /* --- NOVO: Estilos do Dashboard --- */
         #dashboard-filtros {
             display: flex;
             gap: 15px;
@@ -135,19 +160,6 @@
             padding: 8px;
             font-size: 1em;
             margin-top: 0;
-        }
-        #dashboard-resultados table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        #dashboard-resultados th, #dashboard-resultados td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        #dashboard-resultados th {
-            background-color: #f2f2f2;
         }
         #loading-dashboard {
             display: none;
@@ -160,6 +172,7 @@
     <div class="header-controls">
         <h2>Minha Agenda de Fisioterapia</h2>
         <div>
+            <button id="btn-abrir-lista-pacientes">Ver Pacientes 📋</button>
             <button id="btn-abrir-dashboard">Dashboard 📊</button>
             <button id="btn-abrir-modal-paciente">Cadastrar Novo Paciente +</button>
         </div>
@@ -174,10 +187,8 @@
             <p><strong>Diagnóstico:</strong> <span id="modal-paciente-diagnostico"></span></p>
             <p><strong>Telefone:</strong> <span id="modal-paciente-telefone"></span></p>
             <p><strong>Status:</strong> <span id="modal-agendamento-status"></span></p>
-            
             <button id="btn-checkin">Fazer Check-in</button>
             <button id="btn-cancelar">Cancelar Atendimento</button>
-            
             <hr style="margin-top: 20px;">
             <h4>Evolução da Sessão</h4>
             <textarea id="texto-evolucao" placeholder="Digite ou grave a evolução..."></textarea>
@@ -223,11 +234,32 @@
                 <button id="btn-buscar-dashboard">Buscar</button>
             </div>
             <p id="loading-dashboard">Carregando dados...</p>
-            <div id="dashboard-resultados"></div>
+            <div id="dashboard-resultados">
+                <table class="modal-table">
+                    </table>
+            </div>
         </div>
     </div>
-
-
+    
+    <div id="modal-lista-pacientes-container" class="modal-container">
+        <div class="modal-content">
+            <span class="modal-close" id="modal-lista-pacientes-close">&times;</span>
+            <h3>Pacientes Cadastrados</h3>
+            <div id="lista-pacientes-resultados">
+                <table class="modal-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>Telefone</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-pacientes-tbody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var calendarEl = document.getElementById('calendar');
@@ -266,6 +298,13 @@
             const loadingDashboard = document.getElementById('loading-dashboard');
             const dashboardResultados = document.getElementById('dashboard-resultados');
 
+            // --- NOVO: Seletores (Modal Lista Pacientes) ---
+            const btnAbrirListaPacientes = document.getElementById('btn-abrir-lista-pacientes');
+            const modalListaPacientesContainer = document.getElementById('modal-lista-pacientes-container');
+            const modalListaPacientesClose = document.getElementById('modal-lista-pacientes-close');
+            const listaPacientesTbody = document.getElementById('lista-pacientes-tbody');
+            // --- FIM NOVO ---
+
             // --- LÓGICA DO CALENDÁRIO ---
             var calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'timeGridWeek', 
@@ -286,7 +325,6 @@
                 eventClick: handleEventClick,
                 events: `${API_URL}/agendamentos`,
                 eventDataTransform: function(apiEvent) {
-                    // Lógica de Cor
                     let color = '#3788d8'; // Azul (Agendado)
                     if (apiEvent.status === 'Presente') color = '#2ca02c'; // Verde
                     if (apiEvent.status === 'Cancelado') color = '#6c757d'; // Cinza
@@ -297,7 +335,7 @@
                         start: apiEvent.data_hora_inicio,
                         end: apiEvent.data_hora_fim,
                         extendedProps: { apiEvent: apiEvent },
-                        color: color // Aplica a cor
+                        color: color
                     };
                 }
             });
@@ -366,7 +404,6 @@
                 } catch (error) { console.error('Erro de rede:', error); }
             }
 
-            // (ABRIR MODAL DE DETALHES)
             function handleEventClick(clickInfo) {
                 const apiEvent = clickInfo.event.extendedProps.apiEvent;
                 currentAgendamentoId = apiEvent.id; 
@@ -377,7 +414,6 @@
                 textoEvolucao.value = '';
                 statusGravacao.textContent = '';
                 
-                // Lógica dos botões Check-in e Cancelar
                 if (apiEvent.status === 'Agendado') {
                     btnCheckin.style.display = 'inline-block';
                     btnCancelar.style.display = 'inline-block';
@@ -404,11 +440,8 @@
                 } catch (error) { console.error('Erro de rede:', error); }
             };
             
-            // Lógica Botão Cancelar
             btnCancelar.onclick = async () => {
-                if (!confirm("Tem certeza que deseja CANCELAR este atendimento?")) {
-                    return;
-                }
+                if (!confirm("Tem certeza que deseja CANCELAR este atendimento?")) { return; }
                 try {
                     const response = await fetch(`${API_URL}/agendamentos/${currentAgendamentoId}/cancelar`, { method: 'POST' });
                     if (response.ok) {
@@ -419,10 +452,7 @@
                         const error = await response.json();
                         alert(`Erro ao cancelar: ${error.detail}`);
                     }
-                } catch (error) { 
-                    console.error('Erro de rede:', error); 
-                    alert('Erro ao conectar com a API.');
-                }
+                } catch (error) { console.error('Erro de rede:', error); }
             };
             
             btnSalvarEvolucao.onclick = async () => {
@@ -519,7 +549,11 @@
                         alert(`Paciente "${pacienteCriado.nome}" cadastrado com sucesso! \nNovo ID: ${pacienteCriado.id}`);
                         formNovoPaciente.reset();
                         modalPacienteContainer.style.display = 'none';
+                        
+                        // CORREÇÃO DO CACHE: Adiciona o novo paciente à lista
                         listaDePacientesCache.push(pacienteCriado);
+                        console.log('Cache atualizado manualmente:', listaDePacientesCache);
+                        
                     } else {
                         const error = await response.json();
                         alert(`Erro ao cadastrar: ${error.detail}`);
@@ -543,20 +577,20 @@
                 dashboardResultados.innerHTML = "";
                 try {
                     const response = await fetch(`${API_URL}/dashboard/sessoes-por-mes?ano=${ano}&mes=${mes}`);
-                    if (!response.ok) {
-                        throw new Error('Erro ao buscar dados do dashboard.');
-                    }
+                    if (!response.ok) { throw new Error('Erro ao buscar dados.'); }
                     const dados = await response.json();
+                    
+                    let tabelaHTML = '<table class="modal-table"><tr><th>Paciente</th><th>Total de Sessões</th></tr>';
                     if (dados.length === 0) {
-                        dashboardResultados.innerHTML = "<p>Nenhuma sessão realizada encontrada para este período.</p>";
+                        tabelaHTML = "<p>Nenhuma sessão realizada encontrada para este período.</p>";
                     } else {
-                        let tabelaHTML = "<table><tr><th>Paciente</th><th>Total de Sessões</th></tr>";
                         dados.forEach(item => {
                             tabelaHTML += `<tr><td>${item.nome_paciente}</td><td>${item.total_sessoes}</td></tr>`;
                         });
                         tabelaHTML += "</table>";
-                        dashboardResultados.innerHTML = tabelaHTML;
                     }
+                    dashboardResultados.innerHTML = tabelaHTML;
+
                 } catch (error) {
                     console.error('Erro no dashboard:', error);
                     dashboardResultados.innerHTML = "<p style='color: red;'>Erro ao carregar dados.</p>";
@@ -564,6 +598,33 @@
                     loadingDashboard.style.display = 'none';
                 }
             };
+
+            // --- NOVO: LÓGICA DO MODAL LISTA PACIENTES ---
+            btnAbrirListaPacientes.onclick = () => {
+                // Limpa a tabela antiga
+                listaPacientesTbody.innerHTML = ""; 
+
+                if (listaDePacientesCache.length === 0) {
+                    listaPacientesTbody.innerHTML = "<tr><td colspan='3'>Nenhum paciente cadastrado.</td></tr>";
+                } else {
+                    // Preenche a tabela com os dados do cache
+                    listaDePacientesCache.forEach(paciente => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${paciente.id}</td>
+                            <td>${paciente.nome}</td>
+                            <td>${paciente.telefone}</td>
+                        `;
+                        listaPacientesTbody.appendChild(tr);
+                    });
+                }
+                
+                // Abre o modal
+                modalListaPacientesContainer.style.display = 'flex';
+            };
+            modalListaPacientesClose.onclick = () => modalListaPacientesContainer.style.display = 'none';
+            // --- FIM NOVO ---
+
 
             // (Fechar Modais ao clicar fora)
             window.onclick = (event) => {
@@ -575,6 +636,10 @@
                 }
                 if (event.target == modalDashboardContainer) {
                     modalDashboardContainer.style.display = 'none';
+                }
+                // NOVO:
+                if (event.target == modalListaPacientesContainer) {
+                    modalListaPacientesContainer.style.display = 'none';
                 }
             };
         });
