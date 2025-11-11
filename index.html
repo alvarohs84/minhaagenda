@@ -222,19 +222,19 @@
             <h3>Cadastrar Novo Paciente</h3>
             <form id="form-novo-paciente">
                 <label for="paciente-nome">Nome Completo:</label>
-                <input type="text" id="paciente-nome" required>
-                <label for="paciente-telefone">Telefone:</label>
+                <input type="text" id="paciente-nome" required> <label for="paciente-telefone">Telefone:</label>
                 <input type="text" id="paciente-telefone" placeholder="(XX) 9XXXX-XXXX">
+                
                 <label for="paciente-nasc">Data de Nascimento:</label>
-                <input type="date" id="paciente-nasc" required>
-                <label for="paciente-sexo">Sexo:</label>
-                <select id="paciente-sexo" required>
-                    <option value="Feminino">Feminino</option>
+                <input type="date" id="paciente-nasc"> <label for="paciente-sexo">Sexo:</label>
+                <select id="paciente-sexo"> <option value="">Selecione...</option> <option value="Feminino">Feminino</option>
                     <option value="Masculino">Masculino</option>
                     <option value="Outro">Outro</option>
                 </select>
+                
                 <label for="paciente-diag">Diagnóstico Médico:</label>
                 <textarea id="paciente-diag" rows="3"></textarea>
+                
                 <button type="submit" id="btn-salvar-paciente">Salvar Paciente</button>
             </form>
         </div>
@@ -254,7 +254,7 @@
             <p id="loading-dashboard">Carregando dados...</p>
             <div id="dashboard-resultados">
                 <table class="modal-table">
-                    </table>
+                </table>
             </div>
         </div>
     </div>
@@ -274,7 +274,7 @@
                         </tr>
                     </thead>
                     <tbody id="lista-pacientes-tbody">
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -601,10 +601,14 @@
                     sexo: document.getElementById('paciente-sexo').value,
                     diagnostico_medico: document.getElementById('paciente-diag').value
                 };
-                if (!novoPaciente.nome || !novoPaciente.data_nascimento) {
-                    alert('Nome e Data de Nascimento são obrigatórios.');
+
+                // =====> [ALTERAÇÃO APLICADA AQUI] <=====
+                // Validação mudou para checar apenas o nome
+                if (!novoPaciente.nome) {
+                    alert('O campo Nome Completo é obrigatório.');
                     return;
                 }
+                
                 try {
                     const response = await fetch(`${API_URL}/pacientes`, {
                         method: 'POST',
