@@ -47,7 +47,6 @@
             background-color: #28a745;
         }
         
-        /* NOVO ESTILO DO BOTÃO DE VOZ */
         #btn-cadastro-rapido-voz {
             background-color: #fd7e14; /* Laranja */
         }
@@ -198,7 +197,6 @@
             <button id="btn-abrir-lista-pacientes">Ver Pacientes 📋</button>
             <button id="btn-abrir-dashboard">Dashboard 📊</button>
             <button id="btn-abrir-modal-paciente">Cadastrar Novo Paciente +</button>
-            
             <button id="btn-cadastro-rapido-voz">Cadastrar por Voz 🎤</button>
         </div>
     </div>
@@ -350,8 +348,6 @@
             const loadingHistorico = document.getElementById('loading-historico');
             const historicoEvolucoesContent = document.getElementById('historico-evolucoes-content');
 
-            // =====> [INÍCIO DO NOVO CÓDIGO DE CADASTRO POR VOZ] <=====
-
             // --- Seletor (Novo Botão de Voz) ---
             const btnCadastroRapidoVoz = document.getElementById('btn-cadastro-rapido-voz');
 
@@ -362,10 +358,9 @@
             if (SpeechRecognitionCadastro) {
                 recognitionCadastro = new SpeechRecognitionCadastro();
                 recognitionCadastro.lang = 'pt-BR';
-                recognitionCadastro.continuous = false; // Queremos que pare após um comando
+                recognitionCadastro.continuous = false; 
                 recognitionCadastro.interimResults = false;
 
-                // Quando o botão é clicado
                 btnCadastroRapidoVoz.onclick = () => {
                     try {
                         recognitionCadastro.start();
@@ -377,32 +372,25 @@
                     }
                 };
 
-                // Quando o reconhecimento termina
                 recognitionCadastro.onend = () => {
                     btnCadastroRapidoVoz.textContent = "Cadastrar por Voz 🎤";
                     btnCadastroRapidoVoz.disabled = false;
                 };
 
-                // Quando um erro ocorre
                 recognitionCadastro.onerror = (event) => {
                     console.error("Erro no reconhecimento de voz:", event.error);
                     alert(`Erro na gravação: ${event.error}`);
                 };
 
-                // Quando o resultado chega
                 recognitionCadastro.onresult = (event) => {
                     const transcript = event.results[0][0].transcript.toLowerCase();
                     const triggerPhrase = "cadastrar paciente";
 
                     if (transcript.startsWith(triggerPhrase)) {
-                        // 1. Extrai o nome
                         let nomePaciente = transcript.substring(triggerPhrase.length).trim();
-                        
-                        // 2. Capitaliza o nome (ex: "joão da silva" -> "João Da Silva")
                         nomePaciente = titleCase(nomePaciente);
 
                         if (nomePaciente) {
-                            // 3. Salva o paciente
                             console.log(`Iniciando cadastro rápido por voz para: ${nomePaciente}`);
                             salvarPacienteRapido(nomePaciente);
                         } else {
@@ -414,36 +402,28 @@
                 };
 
             } else {
-                // Navegador não suporta a API
                 btnCadastroRapidoVoz.disabled = true;
                 btnCadastroRapidoVoz.textContent = "Voz não suportada 😞";
             }
 
-            // --- Função para capitalizar o nome ---
             function titleCase(str) {
                 return str.toLowerCase().split(' ').map(word => {
-                    return (word.length > 2) ? // Capitaliza "da", "de", "do"? Deixei para capitalizar tudo
+                    return (word.length > 2) ?
                            word.charAt(0).toUpperCase() + word.slice(1) :
                            word;
                 }).join(' ');
             }
             
-            // --- Função para enviar o paciente rápido para a API ---
             async function salvarPacienteRapido(nome) {
-                // Cria um objeto paciente mínimo, igual o formulário faria
+                // [CORREÇÃO APLICADA]
+                // Enviando valores padrão para campos obrigatórios no backend
                 const novoPaciente = {
                     nome: nome,
                     telefone: "",
-                    data_nascimento: null, // Envia null, já que não é obrigatório
-                    sexo: "",            // Envia vazio
+                    data_nascimento: '1900-01-01', // Data padrão
+                    sexo: 'Outro',               // Sexo padrão
                     diagnostico_medico: ""
                 };
-
-                // No seu JS, quando o data_nascimento está vazio, ele envia "" (string vazia)
-                // Vamos manter isso para consistência, mas null seria mais correto para o backend
-                if (novoPaciente.data_nascimento === "") {
-                    novoPaciente.data_nascimento = null;
-                }
 
                 try {
                     const response = await fetch(`${API_URL}/pacientes`, {
@@ -455,12 +435,12 @@
                     if (response.ok) {
                         const pacienteCriado = await response.json();
                         alert(`Paciente "${pacienteCriado.nome}" cadastrado com sucesso!`);
-                        
-                        // IMPORTANTE: Atualiza o cache de pacientes
                         listaDePacientesCache.push(pacienteCriado); 
                     } else {
+                        // [CORREÇÃO DO ALERTA]
                         const error = await response.json();
-                        alert(`Erro ao cadastrar: ${error.detail}`);
+                        console.error('Erro do backend (voz):', error);
+                        alert(`Erro ao cadastrar: ${JSON.stringify(error.detail)}`);
                     }
                 } catch (error) {
                     console.error('Erro de rede no cadastro rápido:', error);
@@ -468,9 +448,6 @@
                 }
             }
             
-            // =====> [FIM DO NOVO CÓDIGO DE CADASTRO POR VOZ] <=====
-
-
             // --- LÓGICA DO CALENDÁRIO ---
             var calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'timeGridWeek', 
@@ -487,10 +464,10 @@
                     day: 'Dia'
                 },
                 selectable: true,
-                editable: true, // Permite arrastar e soltar
+                editable: true, 
                 select: handleSelectTime,
                 eventClick: handleEventClick,
-                eventDrop: handleEventDrop, // Função para salvar ao arrastar
+                eventDrop: handleEventDrop, 
                 events: `${API_URL}/agendamentos`,
                 eventDataTransform: function(apiEvent) {
                     let color = '#3788d8';
@@ -565,7 +542,7 @@
                         calendar.refetchEvents();
                     } else {
                         const error = await response.json();
-                        alert(`Erro ao agendar: ${error.detail}`);
+                        alert(`Erro ao agendar: ${JSON.stringify(error.detail)}`);
                     }
                 } catch (error) { console.error('Erro de rede:', error); }
             }
@@ -632,7 +609,7 @@
                         calendar.refetchEvents();
                     } else {
                         const error = await response.json();
-                        alert(`Erro no check-in: ${error.detail}`);
+                        alert(`Erro no check-in: ${JSON.stringify(error.detail)}`);
                     }
                 } catch (error) { console.error('Erro de rede:', error); }
             };
@@ -646,7 +623,7 @@
                         calendar.refetchEvents();
                     } else {
                         const error = await response.json();
-                        alert(`Erro ao cancelar: ${error.detail}`);
+                        alert(`Erro ao cancelar: ${JSON.stringify(error.detail)}`);
                     }
                 } catch (error) { console.error('Erro de rede:', error); }
             };
@@ -664,7 +641,7 @@
                         modalContainer.style.display = 'none';
                     } else {
                         const error = await response.json();
-                        alert(`Erro ao salvar evolução: ${error.detail}`);
+                        alert(`Erro ao salvar evolução: ${JSON.stringify(error.detail)}`);
                     }
                 } catch (error) { console.error('Erro de rede:', error); }
             };
@@ -723,18 +700,19 @@
             formNovoPaciente.onsubmit = async (event) => {
                 event.preventDefault(); 
                 
+                // [CORREÇÃO APLICADA]
                 let dataNasc = document.getElementById('paciente-nasc').value;
+                let sexo = document.getElementById('paciente-sexo').value;
 
                 const novoPaciente = {
                     nome: document.getElementById('paciente-nome').value,
                     telefone: document.getElementById('paciente-telefone').value,
-                    data_nascimento: dataNasc ? dataNasc : null, // Envia null se estiver vazio
-                    sexo: document.getElementById('paciente-sexo').value,
+                    data_nascimento: dataNasc ? dataNasc : '1900-01-01', // Data padrão
+                    sexo: sexo ? sexo : 'Outro', // Sexo padrão
                     diagnostico_medico: document.getElementById('paciente-diag').value
                 };
 
-                // =====> [ALTERAÇÃO APLICADA AQUI] <=====
-                // Validação mudou para checar apenas o nome
+                // Validação do nome (único campo obrigatório no frontend)
                 if (!novoPaciente.nome) {
                     alert('O campo Nome Completo é obrigatório.');
                     return;
@@ -753,8 +731,10 @@
                         modalPacienteContainer.style.display = 'none';
                         listaDePacientesCache.push(pacienteCriado);
                     } else {
+                        // [CORREÇÃO DO ALERTA]
                         const error = await response.json();
-                        alert(`Erro ao cadastrar: ${error.detail}`);
+                        console.error('Erro do backend (form):', error);
+                        alert(`Erro ao cadastrar: ${JSON.stringify(error.detail)}`);
                     }
                 } catch (error) {
                     console.error('Erro de rede:', error);
@@ -798,7 +778,6 @@
             // --- LÓGICA DO MODAL LISTA PACIENTES ---
             btnAbrirListaPacientes.onclick = () => {
                 listaPacientesTbody.innerHTML = ""; 
-                // Ordena o cache por nome antes de exibir
                 listaDePacientesCache.sort((a, b) => a.nome.localeCompare(b.nome));
 
                 if (listaDePacientesCache.length === 0) {
@@ -839,7 +818,6 @@
                     if (evolucoes.length === 0) {
                         historicoEvolucoesContent.innerHTML = "<p>Nenhuma evolução registrada para este paciente.</p>";
                     } else {
-                        // Ordena as evoluções da mais recente para a mais antiga
                         evolucoes.sort((a, b) => new Date(b.data_criacao) - new Date(a.data_criacao));
 
                         evolucoes.forEach(evo => {
@@ -848,7 +826,8 @@
                                 <div class="evolucao-item">
                                     <div class="evolucao-data">${data}</div>
                                     <div class="evolucao-texto">${evo.texto_evolucao}</div>
-                                d_`;
+                                </div>
+                            `;
                             historicoEvolucoesContent.innerHTML += itemHTML;
                         });
                     }
