@@ -3,6 +3,7 @@
 <head>
     <meta charset='utf-8' />
     <title>Agenda de Fisioterapia</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js'></script>
     
@@ -102,7 +103,6 @@
         
         #btn-checkin { background-color: #28a745; color: white; }
         #btn-cancelar { background-color: #ffc107; color: black; } 
-        /* [NOVO] Estilo para o botão de excluir agendamento */
         #btn-excluir-agendamento { background-color: #dc3545; color: white; }
         #btn-gravar { background-color: #dc3545; color: white; }
         #btn-salvar-evolucao { background-color: #007bff; color: white; }
@@ -202,6 +202,57 @@
             padding: 8px;
             font-size: 1em;
             margin-top: 0;
+        }
+
+        /* [NOVO] Bloco de Responsividade para Celular */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px; /* Menos preenchimento nas laterais */
+            }
+
+            /* Empilha o cabeçalho */
+            .header-controls {
+                flex-direction: column; /* Coloca o título em cima dos botões */
+                align-items: flex-start; /* Alinha tudo à esquerda */
+                gap: 15px;
+            }
+
+            .header-controls h2 {
+                font-size: 1.4em; /* Título um pouco menor */
+            }
+
+            /* Organiza os botões do cabeçalho */
+            .header-controls div {
+                display: flex;
+                flex-wrap: wrap; /* Faz os botões quebrarem a linha */
+                width: 100%;
+                gap: 10px;
+            }
+
+            .header-controls button {
+                flex-grow: 1; /* Faz os botões crescerem para preencher o espaço */
+                min-width: calc(50% - 10px); /* Tenta colocar 2 botões por linha */
+                margin-left: 0;
+            }
+
+            /* Ajusta os modais */
+            .modal-content {
+                width: 95%;
+                margin: 20px auto; /* Menos margem no topo */
+                padding: 20px 15px;
+                max-height: 90vh; /* Garante que o modal não saia da tela */
+            }
+
+            /* Permite rolagem horizontal na tabela de pacientes */
+            #lista-pacientes-resultados {
+                overflow-x: auto;
+            }
+
+            /* Empilha os filtros do dashboard */
+            #dashboard-filtros {
+                flex-direction: column;
+                align-items: stretch; /* Estica os filtros */
+            }
         }
     </style>
 </head>
@@ -329,6 +380,9 @@
             const API_URL = 'https://minhaagenda.onrender.com';
             let listaDePacientesCache = [];
             
+            // [NOVO] Verifica se a tela é de celular
+            const isMobile = window.innerWidth <= 768;
+            
             let pacienteIdEmEdicao = null;
 
             // --- Seletores (Modal Agendamento) ---
@@ -345,7 +399,6 @@
             const textoEvolucao = document.getElementById('texto-evolucao');
             const statusGravacao = document.getElementById('status-gravacao');
             const btnCancelar = document.getElementById('btn-cancelar');
-            // [NOVO] Seletor do botão de excluir agendamento
             const btnExcluirAgendamento = document.getElementById('btn-excluir-agendamento');
 
             // --- Seletores (Modal Paciente) ---
@@ -477,12 +530,14 @@
             
             // --- LÓGICA DO CALENDÁRIO ---
             var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'timeGridWeek', 
+                // [MODIFICADO] Muda a visão padrão com base no tamanho da tela
+                initialView: isMobile ? 'timeGridDay' : 'timeGridWeek', 
                 locale: 'pt-br',
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                    // [MODIFICADO] Simplifica os botões no celular
+                    right: isMobile ? 'timeGridDay,dayGridMonth' : 'dayGridMonth,timeGridWeek,timeGridDay'
                 },
                 buttonText: {
                     today: 'Hoje',
@@ -584,8 +639,7 @@
                 textoEvolucao.value = '';
                 statusGravacao.textContent = '';
                 
-                // [MODIFICADO] Mostra/oculta botões de status
-                btnExcluirAgendamento.style.display = 'inline-block'; // Sempre mostra
+                btnExcluirAgendamento.style.display = 'inline-block';
                 if (apiEvent.status === 'Agendado') {
                     btnCheckin.style.display = 'inline-block';
                     btnCancelar.style.display = 'inline-block';
@@ -675,7 +729,6 @@
                 } catch (error) { console.error('Erro de rede:', error); }
             };
 
-            // [NOVO] Lógica para Excluir o Agendamento
             btnExcluirAgendamento.onclick = async () => {
                 if (!confirm(`Tem certeza que deseja EXCLUIR PERMANENTEMENTE este agendamento?\n\nPaciente: ${modalPacienteNome.textContent}\nIsso não pode ser desfeito.`)) {
                     return;
@@ -689,7 +742,7 @@
                     if (response.ok) {
                         alert('Agendamento excluído com sucesso!');
                         modalContainer.style.display = 'none';
-                        calendar.refetchEvents(); // Remove o evento da agenda
+                        calendar.refetchEvents();
                     } else {
                         const error = await response.json();
                         alert(`Erro ao excluir agendamento: ${JSON.stringify(error.detail)}`);
@@ -948,6 +1001,7 @@
                         alert(`Paciente "${pacienteNome}" excluído com sucesso.`);
                         listaDePacientesCache = listaDePacientesCache.filter(p => p.id !== pacienteId);
                         modalListaPacientesContainer.style.display = 'none';
+                        calendar.refetchEvents(); // Recarrega eventos caso algum tenha sido excluído
                     } else {
                         const error = await response.json();
                         console.error('Erro ao excluir:', error);
