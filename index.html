@@ -16,8 +16,10 @@
             margin: 0 auto;
         }
         .fc-event {
-            cursor: pointer;
+            cursor: pointer; /* Cursor de mãozinha */
         }
+
+        /* Cabeçalho com botão */
         .header-controls {
             display: flex;
             justify-content: space-between;
@@ -32,19 +34,21 @@
             border-radius: 5px;
             border: none;
             cursor: pointer;
-            background-color: #17a2b8;
+            background-color: #17a2b8; /* Cor Ciano */
             color: white;
             font-weight: bold;
         }
+
+        /* --- CSS DO MODAL (Genérico) --- */
         .modal-container {
-            display: none;
+            display: none; /* Escondido por padrão */
             position: fixed;
             z-index: 1000;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            background-color: rgba(0, 0, 0, 0.5); /* Fundo preto semi-transparente */
             justify-content: center;
             align-items: center;
         }
@@ -56,8 +60,8 @@
             width: 90%;
             max-width: 600px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            max-height: 80vh;
-            overflow-y: auto;
+            max-height: 80vh; /* Para formulários longos */
+            overflow-y: auto; /* Adiciona scroll se necessário */
         }
         .modal-close {
             color: #aaa;
@@ -84,10 +88,14 @@
             border: none;
             cursor: pointer;
         }
+        
+        /* Botões do Modal de Agendamento */
         #btn-checkin { background-color: #28a745; color: white; }
         #btn-gravar { background-color: #dc3545; color: white; }
         #btn-salvar-evolucao { background-color: #007bff; color: white; }
         #status-gravacao { font-style: italic; color: #555; }
+
+        /* Estilo do Formulário de Paciente */
         .modal-content form { 
             display: flex; 
             flex-direction: column; 
@@ -99,14 +107,14 @@
         }
         .modal-content form input,
         .modal-content form select,
-        .modal-content form textarea#paciente-diag {
+        .modal-content form textarea#paciente-diag { /* ID específico */
             width: 95%;
             padding: 8px;
             font-size: 1em;
             border: 1px solid #ccc;
             border-radius: 4px;
             margin-top: 5px;
-            height: auto;
+            height: auto; /* Reseta altura */
         }
         #btn-salvar-paciente { 
             background-color: #007bff; 
@@ -127,12 +135,16 @@
     <div id="modal-container" class="modal-container">
         <div class="modal-content">
             <span class="modal-close" id="modal-agendamento-close">&times;</span>
+            
             <h3 id="modal-paciente-nome">Nome do Paciente</h3>
             <p><strong>Diagnóstico:</strong> <span id="modal-paciente-diagnostico"></span></p>
             <p><strong>Telefone:</strong> <span id="modal-paciente-telefone"></span></p>
             <p><strong>Status:</strong> <span id="modal-agendamento-status"></span></p>
+            
             <button id="btn-checkin">Fazer Check-in</button>
+            
             <hr style="margin-top: 20px;">
+            
             <h4>Evolução da Sessão</h4>
             <textarea id="texto-evolucao" placeholder="Digite ou grave a evolução..."></textarea>
             <p id="status-gravacao"></p>
@@ -145,21 +157,27 @@
         <div class="modal-content">
             <span class="modal-close" id="modal-paciente-close">&times;</span>
             <h3>Cadastrar Novo Paciente</h3>
+            
             <form id="form-novo-paciente">
                 <label for="paciente-nome">Nome Completo:</label>
                 <input type="text" id="paciente-nome" required>
+
                 <label for="paciente-telefone">Telefone:</label>
                 <input type="text" id="paciente-telefone" placeholder="(XX) 9XXXX-XXXX">
+
                 <label for="paciente-nasc">Data de Nascimento:</label>
                 <input type="date" id="paciente-nasc" required>
+
                 <label for="paciente-sexo">Sexo:</label>
                 <select id="paciente-sexo" required>
                     <option value="Feminino">Feminino</option>
                     <option value="Masculino">Masculino</option>
                     <option value="Outro">Outro</option>
                 </select>
+
                 <label for="paciente-diag">Diagnóstico Médico:</label>
                 <textarea id="paciente-diag" rows="3"></textarea>
+
                 <button type="submit" id="btn-salvar-paciente">Salvar Paciente</button>
             </form>
         </div>
@@ -170,8 +188,11 @@
         document.addEventListener('DOMContentLoaded', function() {
             var calendarEl = document.getElementById('calendar');
             
-            const API_URL = 'http://127.0.0.1:8000';
+            // --- CONSTANTES E ELEMENTOS DO DOM ---
+            // APONTANDO DIRETAMENTE PARA A SUA API NO RENDER
+            const API_URL = 'https://minhaagenda.onrender.com'; 
             
+            // Modal de Agendamento
             const modalContainer = document.getElementById('modal-container');
             const modalAgendamentoClose = document.getElementById('modal-agendamento-close');
             let currentAgendamentoId = null; 
@@ -186,15 +207,15 @@
             const textoEvolucao = document.getElementById('texto-evolucao');
             const statusGravacao = document.getElementById('status-gravacao');
             
+            // Elementos do Modal de Paciente
             const btnAbrirModalPaciente = document.getElementById('btn-abrir-modal-paciente');
             const modalPacienteContainer = document.getElementById('modal-paciente-container');
             const modalPacienteClose = document.getElementById('modal-paciente-close');
             const formNovoPaciente = document.getElementById('form-novo-paciente');
 
-            // --- NOVO: CACHE DE PACIENTES ---
+            // --- CACHE DE PACIENTES ---
             let listaDePacientesCache = [];
 
-            // Função para carregar pacientes no cache
             async function carregarPacientes() {
                 try {
                     const response = await fetch(`${API_URL}/pacientes`);
@@ -208,8 +229,6 @@
                     console.error('Erro de rede ao carregar pacientes:', error);
                 }
             }
-            // --- FIM NOVO ---
-
 
             // --- LÓGICA DO CALENDÁRIO ---
             var calendar = new FullCalendar.Calendar(calendarEl, {
@@ -220,14 +239,17 @@
                     center: 'title',
                     right: 'dayGridMonth,timeGridWeek,timeGridDay'
                 },
+                
+                // Tradução dos botões
                 buttonText: {
                     today: 'Hoje',
                     month: 'Mês',
                     week: 'Semana',
                     day: 'Dia'
                 },
+                
                 selectable: true,
-                select: handleSelectTime, // ATUALIZADA
+                select: handleSelectTime,
                 eventClick: handleEventClick,
                 events: `${API_URL}/agendamentos`,
                 eventDataTransform: function(apiEvent) {
@@ -250,7 +272,7 @@
 
             // --- FUNÇÕES DO CALENDÁRIO ---
 
-            // (CRIAR AGENDAMENTO) - ATUALIZADA
+            // (CRIAR AGENDAMENTO)
             async function handleSelectTime(selectionInfo) {
                 // Pede o NOME
                 let nomePaciente = prompt('Digite o NOME do paciente para agendar:');
@@ -262,7 +284,7 @@
                 );
 
                 if (!pacienteEncontrado) {
-                    alert('Paciente não encontrado. Verifique o nome ou cadastre-o primeiro usando o botão "Cadastrar Novo Paciente +".');
+                    alert('Paciente não encontrado. Verifique o nome ou cadastre-o primeiro.');
                     return;
                 }
                 
@@ -408,6 +430,7 @@
                 modalPacienteContainer.style.display = 'none';
             };
 
+            // (Salvar Paciente)
             formNovoPaciente.onsubmit = async (event) => {
                 event.preventDefault(); 
                 const novoPaciente = {
@@ -432,7 +455,11 @@
                         alert(`Paciente "${pacienteCriado.nome}" cadastrado com sucesso! \nNovo ID: ${pacienteCriado.id}`);
                         formNovoPaciente.reset();
                         modalPacienteContainer.style.display = 'none';
-                        carregarPacientes(); // ATUALIZA O CACHE com o novo paciente
+                        
+                        // ATUALIZA O CACHE MANUALMENTE
+                        listaDePacientesCache.push(pacienteCriado);
+                        console.log('Cache atualizado manualmente:', listaDePacientesCache);
+                        
                     } else {
                         const error = await response.json();
                         alert(`Erro ao cadastrar: ${error.detail}`);
