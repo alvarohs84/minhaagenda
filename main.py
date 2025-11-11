@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload # Importe o joinedload
+from sqlalchemy import func, extract
 from typing import List
 from datetime import datetime
 
@@ -174,3 +175,32 @@ def listar_evolucoes_do_agendamento(agendamento_id: int, db: Session = Depends(g
         )
         
     return agendamento.evolucoes
+
+# ENDPOINT DE DASHBOARD
+# ===============================================
+
+@app.get("/dashboard/sessoes-por-mes", response_model=List[schemas.SessaoDashboard])
+def get_dashboard_sessoes(ano: int, mes: int, db: Session = Depends(get_db)):
+    """
+    Calcula o total de sessões 'Presente' para cada paciente 
+    em um determinado mês e ano.
+    """
+    try:
+        # Consulta o banco
+        resultados = db.query(
+            models.Paciente.nome.label("nome_paciente"),
+            func.count(models.Agendamento.id).label("total_sessoes")
+        ).join(models.Paciente, models.Agendamento.paciente_id == models.Paciente.id)
+         .filter(models.Agendamento.status == schemas.StatusAgendamento.presente) # Apenas sessões realizadas
+         .filter(extract('year', models.Agendamento.data_hora_inicio) == ano) # Filtra pelo ano
+         .filter(extract('month', models.Agendamento.data_hora_inicio) == mes) # Filtra pelo mês
+         .group_by(models.Paciente.nome) # Agrupa por paciente
+         .order_by(func.count(models.Agendamento.id).desc()) # Ordena por quem teve mais sessões
+         .all()
+        
+        return resultados
+    
+    except Exception as e:
+        # Se der erro no banco, informa o servidor
+        print(f"Erro no dashboard: {e}") 
+        raise HTTPException(status_code=500, detail="Erro ao processar a consulta do dashboard.")

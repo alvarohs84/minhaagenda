@@ -79,3 +79,11 @@ class Evolucao(EvolucaoBase):
 
     class Config:
         from_attributes = True
+        
+        # --- Dashboard ---
+class SessaoDashboard(BaseModel):
+    nome_paciente: str
+    total_sessoes: int
+
+    class Config:
+        from_attributes = True # Permite ler dados do SQLAlchemy
