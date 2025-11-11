@@ -660,14 +660,33 @@
             async function handleEventDrop(dropInfo) {
                 const event = dropInfo.event;
                 const agendamentoId = event.id;
+                
+                // [CORREÇÃO APLICADA AQUI]
+                // Se 'event.end' for nulo, calculamos manualmente para preservar a duração.
+                let dataFim;
+                if (event.end) {
+                    dataFim = event.end.toISOString();
+                } else {
+                    // Pega a duração do evento ANTES de ser arrastado
+                    const oldEvent = dropInfo.oldEvent;
+                    const duracao = oldEvent.end.getTime() - oldEvent.start.getTime(); // Duração em milissegundos
+                    
+                    // Cria a nova data final somando a duração ao novo início
+                    const newEndDate = new Date(event.start.getTime() + duracao);
+                    dataFim = newEndDate.toISOString();
+                }
+                // Fim da correção
+
                 if (!confirm(`Mover o atendimento de "${event.title}" para ${event.start.toLocaleString('pt-BR')}?`)) {
                     dropInfo.revert();
                     return;
                 }
+                
                 const updateData = {
                     data_hora_inicio: event.start.toISOString(),
-                    data_hora_fim: event.end ? event.end.toISOString() : event.start.toISOString() 
+                    data_hora_fim: dataFim // Usa a dataFim corrigida
                 };
+
                 try {
                     const response = await fetch(`${API_URL}/agendamentos/${agendamentoId}`, {
                         method: 'PATCH',
@@ -676,8 +695,7 @@
                     });
                     if (response.ok) {
                         alert('Agendamento atualizado com sucesso!');
-                        // [CORREÇÃO APLICADA AQUI]
-                        calendar.refetchEvents(); // Força a agenda a recarregar
+                        calendar.refetchEvents(); // Recarrega os eventos para garantir
                     } else {
                         alert('Erro ao atualizar o agendamento.');
                         dropInfo.revert();
