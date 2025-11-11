@@ -22,8 +22,8 @@ app = FastAPI(
 origins = [
     "http://localhost",
     "http://127.0.0.1",
-    "null", # Permite abrir o arquivo 'index.html' direto do computador
-    # Adicione a URL do seu site no Render/Vercel aqui quando publicar
+    "null",
+    "https://alvarohs84.github.io"  # <-- ADICIONE ESTA LINHA
 ]
 
 app.add_middleware(
