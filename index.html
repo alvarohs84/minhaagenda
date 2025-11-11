@@ -134,7 +134,6 @@
             margin-top: 20px;
         }
 
-        /* [NOVO] Estilo do botão de salvar agendamento */
         #btn-salvar-agendamento {
             background-color: #28a745;
             color: white;
@@ -323,10 +322,10 @@
             <p><strong>Horário:</strong> <span id="novo-agendamento-horario"></span></p> 
             
             <form id="form-novo-agendamento">
-                <label for="select-paciente">Paciente:</label>
-                <select id="select-paciente" required>
-                    <option value="">Selecione um paciente...</option>
-                    </select>
+                <label for="input-paciente">Paciente:</label>
+                <input type="text" id="input-paciente" list="paciente-list" placeholder="Digite ou selecione um paciente..." required>
+                <datalist id="paciente-list">
+                    </datalist>
                 <button type="submit" id="btn-salvar-agendamento">Agendar</button>
             </form>
         </div>
@@ -393,7 +392,6 @@
             
             const isMobile = window.innerWidth <= 768;
             let pacienteIdEmEdicao = null;
-            // [NOVO] Variável para guardar o horário clicado
             let currentSelectionInfo = null; 
 
             // --- Seletores (Modal Agendamento) ---
@@ -419,11 +417,13 @@
             const formNovoPaciente = document.getElementById('form-novo-paciente');
             const modalTituloPaciente = document.getElementById('modal-titulo-paciente'); 
 
-            // --- [NOVO] Seletores (Modal Novo Agendamento) ---
+            // --- Seletores (Modal Novo Agendamento) ---
             const modalNovoAgendamento = document.getElementById('modal-novo-agendamento');
             const modalNovoAgendamentoClose = document.getElementById('modal-novo-agendamento-close');
             const formNovoAgendamento = document.getElementById('form-novo-agendamento');
-            const selectPaciente = document.getElementById('select-paciente');
+            // [MODIFICADO] Seletores para o input e datalist
+            const inputPaciente = document.getElementById('input-paciente');
+            const pacienteDataList = document.getElementById('paciente-list');
             const novoAgendamentoHorario = document.getElementById('novo-agendamento-horario');
 
             // --- Seletores (Modal Dashboard) ---
@@ -614,29 +614,32 @@
 
             // --- FUNÇÕES DO CALENDÁRIO ---
             
-            // [FUNÇÃO MODIFICADA] para usar o NOVO MODAL em vez do prompt()
+            // [FUNÇÃO MODIFICADA] para usar o <datalist>
             async function handleSelectTime(selectionInfo) {
                 // 1. Salva as informações de data/hora
                 currentSelectionInfo = selectionInfo;
 
-                // 2. Limpa e Popula o <select>
-                selectPaciente.innerHTML = '<option value="">Selecione um paciente...</option>'; // Limpa opções antigas
+                // 2. Limpa e Popula a <datalist>
+                pacienteDataList.innerHTML = ''; // Limpa opções antigas
                 listaDePacientesCache.sort((a, b) => a.nome.localeCompare(b.nome)); // Ordena
                 listaDePacientesCache.forEach(paciente => {
                     const option = document.createElement('option');
-                    option.value = paciente.id;
-                    option.textContent = `${paciente.nome}`;
-                    selectPaciente.appendChild(option);
+                    option.value = paciente.nome; 
+                    pacienteDataList.appendChild(option);
                 });
 
-                // 3. Mostra o horário no modal
+                // 3. Limpa o valor anterior do input
+                inputPaciente.value = '';
+
+                // 4. Mostra o horário no modal
                 const inicio = selectionInfo.start.toLocaleString('pt-BR', { timeStyle: 'short' });
                 const fim = selectionInfo.end.toLocaleString('pt-BR', { timeStyle: 'short' });
                 const dia = selectionInfo.start.toLocaleString('pt-BR', { dateStyle: 'short' });
                 novoAgendamentoHorario.textContent = `${dia} - ${inicio} às ${fim}`;
 
-                // 4. Abre o modal
+                // 5. Abre o modal
                 modalNovoAgendamento.style.display = 'flex';
+                inputPaciente.focus(); // Foca no campo de busca
             }
 
             function handleEventClick(clickInfo) {
@@ -884,21 +887,35 @@
                 }
             };
 
-            // --- [NOVO] Lógica do Modal de NOVO AGENDAMENTO ---
+            // --- Lógica do Modal de NOVO AGENDAMENTO ---
             modalNovoAgendamentoClose.onclick = () => {
                 modalNovoAgendamento.style.display = 'none';
-                currentSelectionInfo = null; // Limpa a seleção
+                currentSelectionInfo = null; 
             }
             
+            // [FUNÇÃO MODIFICADA] para usar o <datalist>
             formNovoAgendamento.onsubmit = async (event) => {
                 event.preventDefault();
                 
-                const pacienteId = selectPaciente.value;
+                // 1. Pega o nome do input
+                const nomePaciente = inputPaciente.value;
                 
-                if (!pacienteId) {
-                    alert('Por favor, selecione um paciente da lista.');
+                if (!nomePaciente) {
+                    alert('Por favor, digite o nome do paciente.');
                     return;
                 }
+
+                // 2. Encontra o paciente no cache pelo nome
+                const pacienteEncontrado = listaDePacientesCache.find(
+                    p => p.nome.toLowerCase() === nomePaciente.toLowerCase().trim()
+                );
+
+                if (!pacienteEncontrado) {
+                    alert('Paciente não encontrado. Por favor, selecione um nome válido da lista ou cadastre o paciente primeiro.');
+                    return;
+                }
+                
+                const pacienteId = pacienteEncontrado.id; // Pega o ID
                 
                 if (!currentSelectionInfo) {
                     alert('Erro: Nenhuma informação de horário encontrada. Tente clicar novamente.');
@@ -906,7 +923,7 @@
                 }
 
                 const novoAgendamento = {
-                    paciente_id: parseInt(pacienteId), // Converte para número
+                    paciente_id: pacienteId, // Já é um número
                     data_hora_inicio: currentSelectionInfo.start.toISOString(),
                     data_hora_fim: currentSelectionInfo.end.toISOString()
                 };
@@ -920,8 +937,8 @@
                     if (response.ok) {
                         alert('Agendamento criado com sucesso!');
                         calendar.refetchEvents();
-                        modalNovoAgendamento.style.display = 'none'; // Fecha o modal
-                        currentSelectionInfo = null; // Limpa a seleção
+                        modalNovoAgendamento.style.display = 'none'; 
+                        currentSelectionInfo = null; 
                     } else {
                         const error = await response.json();
                         alert(`Erro ao agendar: ${JSON.stringify(error.detail)}`);
@@ -1121,7 +1138,6 @@
                 if (event.target == modalDashboardContainer) modalDashboardContainer.style.display = 'none';
                 if (event.target == modalListaPacientesContainer) modalListaPacientesContainer.style.display = 'none';
                 if (event.target == modalHistoricoContainer) modalHistoricoContainer.style.display = 'none';
-                // [NOVO] Fechar modal de novo agendamento
                 if (event.target == modalNovoAgendamento) {
                     modalNovoAgendamento.style.display = 'none';
                     currentSelectionInfo = null;
