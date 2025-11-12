@@ -1,12 +1,11 @@
 # --- main.py ---
-# [CORRIGIDO] Atualizado para Pydantic v2 (from_attributes=True)
+# [CORRIGIDO] Lógica de atualização (PATCH) da rota de agendamentos
 
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, Text, Enum as PyEnum
 from sqlalchemy.orm import sessionmaker, Session, relationship
 from sqlalchemy.orm import declarative_base 
-# [CORREÇÃO] Importar ConfigDict
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime, date
@@ -77,7 +76,6 @@ class PacienteCreate(PacienteBase):
 
 class PacienteSchema(PacienteBase):
     id: int
-    # [CORREÇÃO] Atualizado de 'orm_mode' para 'model_config'
     model_config = ConfigDict(from_attributes=True)
 
 class EvolucaoCreate(BaseModel):
@@ -98,8 +96,6 @@ class AgendamentoSchema(BaseModel):
     data_hora_fim: datetime
     status: str
     paciente: PacienteSchema 
-    
-    # [CORREÇÃO] Atualizado de 'orm_mode' para 'model_config'
     model_config = ConfigDict(from_attributes=True)
 
 class DashboardSessao(BaseModel):
@@ -110,8 +106,6 @@ class EvolucaoSchema(BaseModel):
     id: int
     texto_evolucao: str
     data_criacao: datetime
-    
-    # [CORREÇÃO] Atualizado de 'orm_mode' para 'model_config'
     model_config = ConfigDict(from_attributes=True)
 
 # --- 4. INICIALIZAÇÃO DO APP E CORS ---
@@ -168,15 +162,13 @@ def atualizar_paciente(paciente_id: int, paciente: PacienteCreate, db: Session =
     
     dados_paciente = paciente.model_dump(exclude_unset=True)
     
-    # Lógica especial para data_nascimento (converter data para datetime)
     if 'data_nascimento' in dados_paciente:
         if dados_paciente['data_nascimento']:
             db_paciente.data_nascimento = datetime.combine(dados_paciente['data_nascimento'], datetime.min.time())
         else:
             db_paciente.data_nascimento = None
-        del dados_paciente['data_nascimento'] # Remove para não tentar atualizar de novo
+        del dados_paciente['data_nascimento'] 
 
-    # Atualiza os outros campos
     for key, value in dados_paciente.items():
         setattr(db_paciente, key, value)
     
@@ -223,6 +215,7 @@ def criar_agendamento(agendamento: AgendamentoCreate, db: Session = Depends(get_
     db.refresh(db_agendamento)
     return db_agendamento
 
+# [FUNÇÃO CORRIGIDA]
 @app.patch("/agendamentos/{agendamento_id}", response_model=AgendamentoSchema)
 def atualizar_data_agendamento(agendamento_id: int, update_data: AgendamentoUpdate, db: Session = Depends(get_db)):
     db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
@@ -230,9 +223,14 @@ def atualizar_data_agendamento(agendamento_id: int, update_data: AgendamentoUpda
         raise HTTPException(status_code=404, detail="Agendamento not found")
     
     try:
-        db_agendamento.data_hora_inicio = update_data.data_hora_inicio
-        db_agendamento.data_hora_fim = update_data.data_hora_fim
-        db.commit()
+        # Pega os dados enviados (ex: data_hora_inicio e data_hora_fim)
+        update_data_dict = update_data.model_dump(exclude_unset=True)
+        
+        # Atualiza os campos no objeto do banco de dados
+        for key, value in update_data_dict.items():
+            setattr(db_agendamento, key, value)
+            
+        db.commit() # Salva as mudanças
         db.refresh(db_agendamento)
         return db_agendamento
     except Exception as e:
