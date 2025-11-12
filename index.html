@@ -549,6 +549,11 @@
             var calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: isMobile ? 'timeGridDay' : 'timeGridWeek', 
                 locale: 'pt-br',
+
+                // [NOVA CONFIGURAÇÃO DE HORÁRIO]
+                slotMinTime: '08:00:00', // Início da agenda às 08:00
+                slotMaxTime: '19:00:00', // Fim da agenda às 19:00
+
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
@@ -561,14 +566,9 @@
                     day: 'Dia'
                 },
                 selectable: true,
-                
-                // [CORREÇÃO APLICADA AQUI]
-                editable: false, // Desabilita o "arrastar e soltar"
-                
+                editable: false, // Arrastar e soltar está desabilitado
                 select: handleSelectTime,
                 eventClick: handleEventClick,
-                
-                // eventDrop: handleEventDrop, // Linha removida
                 
                 events: function(fetchInfo, successCallback, failureCallback) {
                     const cacheBust = `cacheBust=${new Date().getTime()}`;
@@ -678,7 +678,7 @@
                 modalContainer.style.display = 'flex';
             }
 
-            // A função handleEventDrop não é mais chamada, mas a deixamos aqui caso queira reativar.
+            // A função handleEventDrop não é mais chamada
             async function handleEventDrop(dropInfo) {
                 // Esta função está desativada pois 'editable' está 'false'
             }
