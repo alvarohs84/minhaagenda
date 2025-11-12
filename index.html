@@ -565,20 +565,44 @@
                 select: handleSelectTime,
                 eventClick: handleEventClick,
                 eventDrop: handleEventDrop, 
-                events: `${API_URL}/agendamentos`,
-                eventDataTransform: function(apiEvent) {
-                    let color = '#3788d8';
-                    if (apiEvent.status === 'Presente') color = '#2ca02c';
-                    if (apiEvent.status === 'Cancelado') color = '#6c757d';
-                    return {
-                        id: apiEvent.id,
-                        title: `${apiEvent.paciente.nome} (${apiEvent.status})`, 
-                        start: apiEvent.data_hora_inicio,
-                        end: apiEvent.data_hora_fim,
-                        extendedProps: { apiEvent: apiEvent },
-                        color: color
-                    };
-                }
+                
+                // [CORREÇÃO APLICADA AQUI]
+                // 1. O 'events' agora é uma função para quebrar o cache do navegador
+                events: function(fetchInfo, successCallback, failureCallback) {
+                    // Adiciona um parâmetro aleatório para forçar o navegador a buscar novos dados
+                    const cacheBust = `cacheBust=${new Date().getTime()}`;
+                    
+                    fetch(`${API_URL}/agendamentos?${cacheBust}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            // 2. A transformação dos dados agora é feita aqui dentro
+                            const transformedData = data.map(apiEvent => {
+                                let color = '#3788d8';
+                                if (apiEvent.status === 'Presente') color = '#2ca02c';
+                                if (apiEvent.status === 'Cancelado') color = '#6c757d';
+                                return {
+                                    id: apiEvent.id,
+                                    title: `${apiEvent.paciente.nome} (${apiEvent.status})`,
+                                    start: apiEvent.data_hora_inicio,
+                                    end: apiEvent.data_hora_fim,
+                                    extendedProps: { apiEvent: apiEvent },
+                                    color: color
+                                };
+                            });
+                            successCallback(transformedData);
+                        })
+                        .catch(error => {
+                            console.error('Erro ao buscar agendamentos:', error);
+                            failureCallback(error);
+                        });
+                },
+                // 3. Removemos o 'eventDataTransform' antigo, pois já o fizemos acima
+                // eventDataTransform: ... (removido)
             });
 
             // --- FUNÇÕES DE INICIALIZAÇÃO ---
@@ -656,26 +680,19 @@
                 modalContainer.style.display = 'flex';
             }
 
-            // [FUNÇÃO CORRIGIDA]
             async function handleEventDrop(dropInfo) {
                 const event = dropInfo.event;
                 const agendamentoId = event.id;
                 
-                // [CORREÇÃO APLICADA AQUI]
-                // Se 'event.end' for nulo, calculamos manualmente para preservar a duração.
                 let dataFim;
                 if (event.end) {
                     dataFim = event.end.toISOString();
                 } else {
-                    // Pega a duração do evento ANTES de ser arrastado
                     const oldEvent = dropInfo.oldEvent;
-                    const duracao = oldEvent.end.getTime() - oldEvent.start.getTime(); // Duração em milissegundos
-                    
-                    // Cria a nova data final somando a duração ao novo início
+                    const duracao = oldEvent.end.getTime() - oldEvent.start.getTime(); 
                     const newEndDate = new Date(event.start.getTime() + duracao);
                     dataFim = newEndDate.toISOString();
                 }
-                // Fim da correção
 
                 if (!confirm(`Mover o atendimento de "${event.title}" para ${event.start.toLocaleString('pt-BR')}?`)) {
                     dropInfo.revert();
@@ -684,7 +701,7 @@
                 
                 const updateData = {
                     data_hora_inicio: event.start.toISOString(),
-                    data_hora_fim: dataFim // Usa a dataFim corrigida
+                    data_hora_fim: dataFim 
                 };
 
                 try {
@@ -695,7 +712,7 @@
                     });
                     if (response.ok) {
                         alert('Agendamento atualizado com sucesso!');
-                        calendar.refetchEvents(); // Recarrega os eventos para garantir
+                        calendar.refetchEvents(); // Força a agenda a recarregar
                     } else {
                         alert('Erro ao atualizar o agendamento.');
                         dropInfo.revert();
