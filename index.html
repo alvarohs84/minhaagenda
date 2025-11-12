@@ -551,11 +551,12 @@
                 locale: 'pt-br',
 
                 // [CONFIGURAÇÕES DE HORÁRIO ATUALIZADAS]
-                slotMinTime: '08:00:00', // Início da agenda às 08:00
-                slotMaxTime: '19:00:00', // Fim da agenda às 19:00
-                slotDuration: '00:55:00', // Intervalos de 55 minutos
-                slotLabelInterval: '00:55:00', // Rótulos na lateral de 55 em 55
-                
+                allDayText: 'Horário',      // Muda o texto "all-day"
+                slotMinTime: '08:00:00',    // Início da agenda às 08:00
+                slotMaxTime: '19:00:00',    // Fim da agenda às 19:00
+                slotDuration: '00:30:00',   // Define a grade para 30 min
+                slotLabelInterval: '00:30:00', // Mostra rótulos (08:00, 08:30)
+
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
@@ -638,9 +639,19 @@
 
             // --- FUNÇÕES DO CALENDÁRIO ---
             
+            // [FUNÇÃO MODIFICADA] para calcular 55 minutos
             async function handleSelectTime(selectionInfo) {
-                currentSelectionInfo = selectionInfo;
+                // 1. Calcula o horário de término (55 minutos)
+                const dataInicio = selectionInfo.start;
+                const dataFim = new Date(dataInicio.getTime() + 55 * 60000); // Adiciona 55 minutos
+                
+                // 2. Guarda as informações de data/hora (com 55 min)
+                currentSelectionInfo = {
+                    start: dataInicio,
+                    end: dataFim
+                };
 
+                // 3. Popula a <datalist>
                 pacienteDataList.innerHTML = ''; 
                 listaDePacientesCache.sort((a, b) => a.nome.localeCompare(b.nome)); 
                 listaDePacientesCache.forEach(paciente => {
@@ -651,11 +662,13 @@
 
                 inputPaciente.value = '';
 
-                const inicio = selectionInfo.start.toLocaleString('pt-BR', { timeStyle: 'short' });
-                const fim = selectionInfo.end.toLocaleString('pt-BR', { timeStyle: 'short' });
-                const dia = selectionInfo.start.toLocaleString('pt-BR', { dateStyle: 'short' });
+                // 4. Mostra o horário no modal (com 55 min)
+                const inicio = dataInicio.toLocaleString('pt-BR', { timeStyle: 'short' });
+                const fim = dataFim.toLocaleString('pt-BR', { timeStyle: 'short' }); // Usa a nova dataFim
+                const dia = dataInicio.toLocaleString('pt-BR', { dateStyle: 'short' });
                 novoAgendamentoHorario.textContent = `${dia} - ${inicio} às ${fim}`;
 
+                // 5. Abre o modal
                 modalNovoAgendamento.style.display = 'flex';
                 inputPaciente.focus(); 
             }
@@ -681,7 +694,6 @@
                 modalContainer.style.display = 'flex';
             }
 
-            // [FUNÇÃO RE-HABILITADA]
             async function handleEventDrop(dropInfo) {
                 const event = dropInfo.event;
                 const agendamentoId = event.id;
@@ -690,8 +702,11 @@
                 if (event.end) {
                     dataFim = event.end.toISOString();
                 } else {
+                    // Pega a duração do evento ANTES de ser arrastado
                     const oldEvent = dropInfo.oldEvent;
-                    const duracao = oldEvent.end.getTime() - oldEvent.start.getTime(); 
+                    const duracao = oldEvent.end.getTime() - oldEvent.start.getTime(); // Duração em milissegundos
+                    
+                    // Cria a nova data final somando a duração ao novo início
                     const newEndDate = new Date(event.start.getTime() + duracao);
                     dataFim = newEndDate.toISOString();
                 }
@@ -953,6 +968,7 @@
 
                 const novoAgendamento = {
                     paciente_id: pacienteId, 
+                    // [MODIFICADO] Usa as datas de 55 min salvas em currentSelectionInfo
                     data_hora_inicio: currentSelectionInfo.start.toISOString(),
                     data_hora_fim: currentSelectionInfo.end.toISOString()
                 };
