@@ -1,5 +1,5 @@
 # --- main.py ---
-# [CORRIGIDO] Lógica de atualização (PATCH) da rota de agendamentos
+# [ATUALIZADO] Configurado para usar PostgreSQL (DATABASE_URL) do Render.
 
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,13 +9,20 @@ from sqlalchemy.orm import declarative_base
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime, date
+import os  # <--- IMPORTADO PARA LER A DATABASE_URL
 
 # --- 1. CONFIGURAÇÃO DO BANCO DE DADOS ---
 
-# IMPORTANTE: Substitua pela URL do seu banco de dados do Render
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
-# Exemplo para PostgreSQL (comum no Render):
-# SQLALCHEMY_DATABASE_URL = "postgresql://user:password@host/dbname"
+# [MODIFICADO] Lê a URL do banco de dados das variáveis de ambiente do Render
+SQLALCHEMY_DATABASE_URL = os.environ.get("DATABASE_URL")
+
+# Se não encontrar a URL (para testes locais), usa o SQLite.
+if SQLALCHEMY_DATABASE_URL is None:
+    print("ALERTA: DATABASE_URL não encontrada, usando SQLite local (temporário).")
+    SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+# Ajusta a URL do Heroku/Render (que usa 'postgres://') para a do SQLAlchemy (que usa 'postgresql://')
+elif SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -215,7 +222,6 @@ def criar_agendamento(agendamento: AgendamentoCreate, db: Session = Depends(get_
     db.refresh(db_agendamento)
     return db_agendamento
 
-# [FUNÇÃO CORRIGIDA]
 @app.patch("/agendamentos/{agendamento_id}", response_model=AgendamentoSchema)
 def atualizar_data_agendamento(agendamento_id: int, update_data: AgendamentoUpdate, db: Session = Depends(get_db)):
     db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
