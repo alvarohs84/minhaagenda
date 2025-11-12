@@ -20,6 +20,13 @@
             cursor: pointer;
         }
 
+        /* [NOVO] Adiciona o título "Horário" acima da grade de tempo */
+        th.fc-timegrid-axis-header .fc-scrollgrid-shrink-cushion::before {
+            content: 'Horário';
+            font-weight: bold;
+            padding-right: 5px; /* Adiciona um espaço */
+        }
+
         .header-controls {
             display: flex;
             justify-content: space-between;
@@ -451,8 +458,7 @@
             // --- Seletor (Novo Botão de Voz) ---
             const btnCadastroRapidoVoz = document.getElementById('btn-cadastro-rapido-voz');
 
-            // --- [NOVA] Função Ajudante para Fuso Horário ---
-            // Formata a data para "YYYY-MM-DDTHH:mm:ss" no fuso horário local
+            // --- Função Ajudante para Fuso Horário ---
             function formatLocalDate(date) {
                 const y = date.getFullYear();
                 const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -561,11 +567,18 @@
             var calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: isMobile ? 'timeGridDay' : 'timeGridWeek', 
                 locale: 'pt-br',
-                allDayText: 'Horário',      // Muda o texto "all-day"
-                slotMinTime: '08:00:00',    // Início da agenda às 08:00
-                slotMaxTime: '19:00:00',    // Fim da agenda às 19:00
-                slotDuration: '00:30:00',   // Define a grade para 30 min
-                slotLabelInterval: '00:30:00', // Mostra rótulos (08:00, 08:30)
+                allDaySlot: false, // Remove a linha "all-day"
+
+                // [CONFIGURAÇÕES DE HORÁRIO ATUALIZADAS]
+                slotMinTime: '08:00:00',       // Início da agenda às 08:00
+                slotMaxTime: '19:00:00',       // Fim da agenda às 19:00
+                slotDuration: '00:30:00',      // Define a grade para 30 min
+                slotLabelInterval: '01:00:00', // Mostra rótulos (08:00, 09:00...)
+                slotLabelFormat: {             // Formata os rótulos
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                },
 
                 headerToolbar: {
                     left: 'prev,next today',
@@ -650,7 +663,6 @@
             // --- FUNÇÕES DO CALENDÁRIO ---
             
             async function handleSelectTime(selectionInfo) {
-                // 1. Calcula o horário de término (55 minutos)
                 const dataInicio = selectionInfo.start;
                 const dataFim = new Date(dataInicio.getTime() + 55 * 60000); // Adiciona 55 minutos
                 
@@ -659,7 +671,6 @@
                     end: dataFim
                 };
 
-                // 3. Popula a <datalist>
                 pacienteDataList.innerHTML = ''; 
                 listaDePacientesCache.sort((a, b) => a.nome.localeCompare(b.nome)); 
                 listaDePacientesCache.forEach(paciente => {
@@ -670,9 +681,8 @@
 
                 inputPaciente.value = '';
 
-                // 4. Mostra o horário no modal (com 55 min)
                 const inicio = dataInicio.toLocaleString('pt-BR', { timeStyle: 'short' });
-                const fim = dataFim.toLocaleString('pt-BR', { timeStyle: 'short' }); // Usa a nova dataFim
+                const fim = dataFim.toLocaleString('pt-BR', { timeStyle: 'short' }); 
                 const dia = dataInicio.toLocaleString('pt-BR', { dateStyle: 'short' });
                 novoAgendamentoHorario.textContent = `${dia} - ${inicio} às ${fim}`;
 
@@ -719,8 +729,6 @@
                     return;
                 }
                 
-                // [CORREÇÃO DO FUSO HORÁRIO]
-                // Envia as datas formatadas no fuso local, não em UTC
                 const updateData = {
                     data_hora_inicio: formatLocalDate(event.start),
                     data_hora_fim: formatLocalDate(dataFim)
@@ -971,8 +979,6 @@
                     return;
                 }
 
-                // [CORREÇÃO DO FUSO HORÁRIO]
-                // Envia as datas formatadas no fuso local, não em UTC
                 const novoAgendamento = {
                     paciente_id: pacienteId, 
                     data_hora_inicio: formatLocalDate(currentSelectionInfo.start),
