@@ -223,14 +223,12 @@ def atualizar_data_agendamento(agendamento_id: int, update_data: AgendamentoUpda
         raise HTTPException(status_code=404, detail="Agendamento not found")
     
     try:
-        # Pega os dados enviados (ex: data_hora_inicio e data_hora_fim)
         update_data_dict = update_data.model_dump(exclude_unset=True)
         
-        # Atualiza os campos no objeto do banco de dados
         for key, value in update_data_dict.items():
             setattr(db_agendamento, key, value)
             
-        db.commit() # Salva as mudanças
+        db.commit() 
         db.refresh(db_agendamento)
         return db_agendamento
     except Exception as e:
