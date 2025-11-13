@@ -2,13 +2,12 @@
 <html lang='pt-br'>
 <head>
     <meta charset='utf-8' />
-    <title>Agenda de Fisioterapia</title>
+    <title>FisioManager</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js'></script>
     
     <style>
-        /* --- [NOVO] Estilos Globais --- */
         :root {
             --sidebar-bg: #2c3e50;
             --main-bg: #ecf0f1;
@@ -22,18 +21,19 @@
             --color-laranja: #fd7e14;
             --color-amarelo: #ffc107;
             --color-azul: #0d6efd;
+            --color-vermelho: #dc3545;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 0;
-            display: flex; /* Layout principal com Flexbox */
+            display: flex; 
             height: 100vh;
-            overflow: hidden; /* Impede a rolagem do body */
+            overflow: hidden; 
         }
 
-        /* --- [NOVO] Estilos do Menu Lateral (Sidebar) --- */
+        /* --- Estilos do Menu Lateral (Sidebar) --- */
         .sidebar {
             width: 240px;
             background-color: var(--sidebar-bg);
@@ -43,16 +43,23 @@
             padding: 20px;
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
         }
-        .sidebar h2 {
-            margin-top: 0;
+        .sidebar-logo {
             text-align: center;
-            color: white;
+            padding: 10px 0;
+            margin-bottom: 15px;
+        }
+        .sidebar-logo img {
+            width: 180px; 
+            max-width: 90%;
+        }
+        .sidebar h2 { 
+            display: none; 
         }
         .sidebar nav {
             display: flex;
             flex-direction: column;
-            margin-top: 20px;
-            flex-grow: 1; /* Empurra os botões de ação para baixo */
+            margin-top: 0; 
+            flex-grow: 1;
         }
         .sidebar nav a {
             color: var(--sidebar-text);
@@ -74,7 +81,7 @@
         .sidebar-buttons {
             display: flex;
             flex-direction: column;
-            gap: 10px; /* Espaço entre os botões */
+            gap: 10px; 
         }
         .sidebar-buttons button {
             width: 100%;
@@ -87,9 +94,9 @@
             text-align: center;
         }
         
-        /* --- [NOVO] Estilos da Área Principal --- */
+        /* --- Estilos da Área Principal --- */
         .main-content {
-            flex-grow: 1; /* Ocupa todo o resto */
+            flex-grow: 1; 
             background-color: var(--main-bg);
             display: flex;
             flex-direction: column;
@@ -101,7 +108,7 @@
             background-color: white;
             border-bottom: 1px solid var(--header-border);
             display: flex;
-            justify-content: flex-end; /* Alinha botões de voz à direita */
+            justify-content: flex-end; 
             gap: 10px;
         }
         .main-header button {
@@ -117,13 +124,12 @@
         main {
             flex-grow: 1;
             padding: 20px;
-            overflow-y: auto; /* Permite rolagem SÓ na área principal */
-            height: calc(100vh - 70px); /* Altura total - altura do header */
+            overflow-y: auto; 
+            height: calc(100vh - 70px); 
         }
 
-        /* [NOVO] Classe para esconder/mostrar as "páginas" */
         .view-section {
-            display: none; /* Todas as seções começam escondidas */
+            display: none; 
         }
 
         /* --- Estilos do Calendário (Ajustados) --- */
@@ -245,7 +251,8 @@
 
         .modal-content form input,
         .modal-content form select,
-        .modal-content form textarea#paciente-diag {
+        .modal-content form textarea#paciente-diag,
+        .modal-content form textarea#paciente-avaliacao { /* [NOVO] */
             width: 95%;
             padding: 8px;
             font-size: 1em;
@@ -294,11 +301,16 @@
             margin-right: 5px;
         }
         .btn-acao-edit {
-            background-color: #ffc107; /* Amarelo */
+            background-color: var(--color-amarelo); 
             color: black;
         }
         .btn-acao-delete {
-            background-color: #dc3545; /* Vermelho */
+            background-color: var(--color-vermelho); 
+            color: white;
+        }
+        /* [NOVO] Estilo para o botão de prontuário */
+        .btn-acao-prontuario {
+            background-color: var(--color-azul);
             color: white;
         }
         
@@ -337,7 +349,7 @@
             margin-top: 0;
         }
 
-        /* --- [NOVO] Estilos para as "páginas" --- */
+        /* --- Estilos para as "páginas" --- */
         #view-pacientes, #view-dashboard {
             background-color: white;
             padding: 20px;
@@ -346,38 +358,40 @@
         }
 
         @media (max-width: 768px) {
-            /* [MODIFICADO] Layout principal vira coluna no celular */
             body {
                 flex-direction: column;
             }
             .sidebar {
-                width: 100%; /* Ocupa a largura toda */
+                width: 100%; 
                 height: auto;
                 padding: 15px;
-                flex-direction: row; /* Sidebar vira um header no celular */
+                flex-direction: row; 
                 justify-content: space-between;
                 align-items: center;
             }
+            .sidebar-logo img {
+                width: 150px; 
+                height: auto;
+            }
             .sidebar h2 {
-                margin: 0;
-                font-size: 1.3em;
+                display: none; 
             }
             .sidebar nav {
-                display: none; /* Esconde a navegação (precisaria de um botão "menu") */
+                display: none; 
             }
             .sidebar-buttons {
-                display: none; /* Esconde os botões de ação (precisaria de um menu) */
+                display: none; 
             }
 
             .main-content {
-                height: calc(100vh - 75px); /* Altura total - altura do novo header */
+                height: calc(100vh - 75px); 
             }
             .main-header {
                 padding: 10px;
-                justify-content: center; /* Centraliza botões de voz */
+                justify-content: center; 
             }
             .main-header button {
-                flex-grow: 1; /* Faz botões de voz ocuparem espaço */
+                flex-grow: 1; 
             }
             main {
                 padding: 10px;
@@ -402,7 +416,9 @@
 <body>
 
     <div class="sidebar">
-        <h2>FisioManager</h2>
+        <div class="sidebar-logo">
+            <img src="FisioManager.png" alt="FisioManager Logo">
+        </div>
         <nav>
             <a href="#" id="nav-agenda" class="active">📅 Agenda</a>
             <a href="#" id="nav-pacientes">📋 Pacientes</a>
@@ -512,6 +528,9 @@
                 <label for="paciente-diag">Diagnóstico Médico:</label>
                 <textarea id="paciente-diag" rows="3"></textarea>
                 
+                <label for="paciente-avaliacao">Avaliação Fisioterapêutica:</label>
+                <textarea id="paciente-avaliacao" rows="6" placeholder="Descreva a avaliação inicial, objetivos, etc..."></textarea>
+
                 <button type="submit" id="btn-salvar-paciente">Salvar Paciente</button>
             </form>
         </div>
@@ -581,7 +600,7 @@
             </form>
         </div>
     </div>
-
+    
     <div id="modal-historico-container" class="modal-container">
         <div class="modal-content">
             <span class="modal-close" id="modal-historico-close">&times;</span>
@@ -644,8 +663,7 @@
             const pacienteDataListManual = document.getElementById('paciente-list-manual');
             const inputDataManual = document.getElementById('input-data-manual'); 
 
-            // --- [MODIFICADO] Seletores (Dashboard e Lista Pacientes) ---
-            // Não são mais modais, mas sim seções da página
+            // --- Seletores (Dashboard e Lista Pacientes) ---
             const btnBuscarDashboard = document.getElementById('btn-buscar-dashboard');
             const loadingDashboard = document.getElementById('loading-dashboard');
             const dashboardResultados = document.getElementById('dashboard-resultados');
@@ -664,7 +682,7 @@
             const btnCadastroRapidoVoz = document.getElementById('btn-cadastro-rapido-voz');
             const btnAgendarPorVoz = document.getElementById('btn-agendar-por-voz'); 
             
-            // --- [NOVO] Seletores da Navegação ---
+            // --- Seletores da Navegação ---
             const navAgenda = document.getElementById('nav-agenda');
             const navPacientes = document.getElementById('nav-pacientes');
             const navDashboard = document.getElementById('nav-dashboard');
@@ -755,6 +773,7 @@
                     data_nascimento: '1900-01-01', 
                     sexo: 'Outro',               
                     diagnostico_medico: ""
+                    // avaliacao não é incluída no cadastro rápido
                 };
 
                 try {
@@ -1020,14 +1039,11 @@
                 popularFiltrosDashboard();
             });
             
-            // --- [NOVO] Lógica de Navegação da Sidebar ---
+            // --- Lógica de Navegação da Sidebar ---
             function showView(viewToShow, linkToActivate) {
-                // Esconde todas as seções
                 allViews.forEach(view => view.style.display = 'none');
-                // Mostra a seção desejada
                 viewToShow.style.display = 'block';
 
-                // Atualiza a classe 'active' nos links da sidebar
                 allNavLinks.forEach(link => link.classList.remove('active'));
                 linkToActivate.classList.add('active');
             }
@@ -1040,13 +1056,12 @@
             navPacientes.onclick = (e) => {
                 e.preventDefault();
                 showView(viewPacientes, navPacientes);
-                abrirListaPacientes(); // Reutiliza a função para popular a tabela
+                abrirListaPacientes(); 
             };
             
             navDashboard.onclick = (e) => {
                 e.preventDefault();
                 showView(viewDashboard, navDashboard);
-                // A lógica do dashboard já é carregada ao clicar no botão "Buscar"
             };
 
 
@@ -1224,17 +1239,7 @@
             };
 
             // --- LÓGICA DA API DE VOZ (EVOLUÇÃO) ---
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            let recognition;
-            if (SpeechRecognition) {
-                // ... (código da voz de evolução, sem mudanças) ...
-            } else {
-                statusGravacao.textContent = 'Seu navegador não suporta a API de Voz.';
-                btnGravar.disabled = true;
-            }
-            btnGravar.onclick = () => {
-                // ... (código da voz de evolução, sem mudanças) ...
-            };
+            // ... (código da voz de evolução, sem mudanças) ...
             
             // --- LÓGICA DO MODAL DE CADASTRO DE PACIENTE (CRIAR E EDITAR) ---
             btnAbrirModalPaciente.onclick = () => {
@@ -1259,7 +1264,8 @@
                     telefone: document.getElementById('paciente-telefone').value,
                     data_nascimento: dataNasc ? dataNasc : '1900-01-01', 
                     sexo: sexo ? sexo : 'Outro', 
-                    diagnostico_medico: document.getElementById('paciente-diag').value
+                    diagnostico_medico: document.getElementById('paciente-diag').value,
+                    avaliacao: document.getElementById('paciente-avaliacao').value // [NOVO]
                 };
 
                 if (!dadosPaciente.nome) {
@@ -1300,7 +1306,7 @@
                         modalPacienteContainer.style.display = 'none';
                         pacienteIdEmEdicao = null; 
                         
-                        abrirListaPacientes(); // [MODIFICADO] Atualiza a tabela em vez de fechar
+                        abrirListaPacientes(); // Atualiza a tabela
                     } else {
                         const error = await response.json();
                         console.error('Erro do backend (form):', error);
@@ -1487,15 +1493,17 @@
                         const tdTel = document.createElement('td');
                         tdTel.textContent = paciente.telefone || 'N/A';
                         
-                        [tdId, tdNome, tdTel].forEach(td => {
-                            td.onclick = () => abrirHistoricoPaciente(paciente.id, paciente.nome);
-                            td.style.cursor = 'pointer'; 
-                        });
+                        // [MODIFICADO] Clique no nome/id/tel não abre mais o histórico
+                        // [tdId, tdNome, tdTel].forEach(td => {
+                        //     td.onclick = () => abrirHistoricoPaciente(paciente.id, paciente.nome);
+                        //     td.style.cursor = 'pointer'; 
+                        // });
 
                         const tdAcoes = document.createElement('td');
                         
                         const btnEditar = document.createElement('button');
                         btnEditar.textContent = '✏️';
+                        btnEditar.title = 'Editar Cadastro';
                         btnEditar.className = 'btn-acao btn-acao-edit';
                         btnEditar.onclick = (e) => {
                             e.stopPropagation(); 
@@ -1504,14 +1512,26 @@
 
                         const btnExcluir = document.createElement('button');
                         btnExcluir.textContent = '🗑️';
+                        btnExcluir.title = 'Excluir Paciente';
                         btnExcluir.className = 'btn-acao btn-acao-delete';
                         btnExcluir.onclick = (e) => {
                             e.stopPropagation(); 
                             handleExcluirPaciente(paciente.id, paciente.nome);
                         };
+                        
+                        // [NOVO] Botão de Prontuário (Evoluções)
+                        const btnProntuario = document.createElement('button');
+                        btnProntuario.textContent = '📄';
+                        btnProntuario.title = 'Ver Evoluções (Prontuário)';
+                        btnProntuario.className = 'btn-acao btn-acao-prontuario';
+                        btnProntuario.onclick = (e) => {
+                            e.stopPropagation();
+                            abrirHistoricoPaciente(paciente.id, paciente.nome);
+                        };
 
                         tdAcoes.appendChild(btnEditar);
                         tdAcoes.appendChild(btnExcluir);
+                        tdAcoes.appendChild(btnProntuario); // Adiciona o novo botão
                         
                         tr.appendChild(tdId);
                         tr.appendChild(tdNome);
@@ -1542,6 +1562,7 @@
 
                 document.getElementById('paciente-sexo').value = paciente.sexo || '';
                 document.getElementById('paciente-diag').value = paciente.diagnostico_medico || '';
+                document.getElementById('paciente-avaliacao').value = paciente.avaliacao || ''; // [NOVO]
                 
                 modalPacienteContainer.style.display = 'flex';
             }
@@ -1619,8 +1640,7 @@
                     modalPacienteContainer.style.display = 'none';
                     pacienteIdEmEdicao = null; 
                 }
-                if (event.target == modalDashboardContainer) modalDashboardContainer.style.display = 'none';
-                if (event.target == modalListaPacientesContainer) modalListaPacientesContainer.style.display = 'none';
+                // [REMOVIDO] Fechamento do Dashboard/Pacientes
                 if (event.target == modalHistoricoContainer) modalHistoricoContainer.style.display = 'none';
                 if (event.target == modalNovoAgendamento) {
                     modalNovoAgendamento.style.display = 'none';
