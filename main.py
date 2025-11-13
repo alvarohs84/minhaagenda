@@ -1,5 +1,5 @@
 # --- main.py ---
-# [ATUALIZADO] Adiciona o campo 'avaliacao' ao Paciente
+# [CORRIGIDO] Corrige o bug de fuso horário (offset-naive vs offset-aware)
 
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,6 +12,7 @@ from datetime import datetime, date
 import os
 from dateutil.rrule import rrule, rrulestr, rrulebase
 from dateutil.relativedelta import relativedelta
+import datetime as dt # [NOVO] Import para o timezone
 
 # --- 1. CONFIGURAÇÃO DO BANCO DE DADOS ---
 
@@ -37,7 +38,7 @@ class Paciente(Base):
     data_nascimento = Column(DateTime, nullable=True) 
     sexo = Column(String, nullable=True)
     diagnostico_medico = Column(String, nullable=True)
-    avaliacao = Column(Text, nullable=True) # [NOVO CAMPO AVALIAÇÃO]
+    avaliacao = Column(Text, nullable=True)
     
     agendamentos = relationship("Agendamento", back_populates="paciente", cascade="all, delete-orphan")
     evolucoes = relationship("Evolucao", back_populates="paciente", cascade="all, delete-orphan")
@@ -45,8 +46,8 @@ class Paciente(Base):
 class Agendamento(Base):
     __tablename__ = 'agendamentos'
     id = Column(Integer, primary_key=True, index=True)
-    data_hora_inicio = Column(DateTime, nullable=False)
-    data_hora_fim = Column(DateTime, nullable=False)
+    data_hora_inicio = Column(DateTime(timezone=True), nullable=False) # [MODIFICADO] Adiciona timezone=True
+    data_hora_fim = Column(DateTime(timezone=True), nullable=False) # [MODIFICADO] Adiciona timezone=True
     status = Column(PyEnum('Agendado', 'Presente', 'Cancelado', name='status_agendamento'), default='Agendado')
     
     paciente_id = Column(Integer, ForeignKey('pacientes.id', ondelete="CASCADE"), nullable=False)
@@ -59,7 +60,7 @@ class Evolucao(Base):
     __tablename__ = 'evolucoes'
     id = Column(Integer, primary_key=True, index=True)
     texto_evolucao = Column(Text, nullable=False)
-    data_criacao = Column(DateTime, default=datetime.utcnow)
+    data_criacao = Column(DateTime(timezone=True), default=datetime.utcnow) # [MODIFICADO] Adiciona timezone=True
     
     agendamento_id = Column(Integer, ForeignKey('agendamentos.id'), nullable=False)
     paciente_id = Column(Integer, ForeignKey('pacientes.id'), nullable=False)
@@ -78,7 +79,7 @@ class PacienteBase(BaseModel):
     data_nascimento: Optional[date] = None
     sexo: Optional[str] = None
     diagnostico_medico: Optional[str] = None
-    avaliacao: Optional[str] = None # [NOVO CAMPO AVALIAÇÃO]
+    avaliacao: Optional[str] = None
 
 class PacienteCreate(PacienteBase):
     pass
@@ -154,7 +155,7 @@ def criar_paciente(paciente: PacienteCreate, db: Session = Depends(get_db)):
         data_nascimento=data_nasc,
         sexo=paciente.sexo,
         diagnostico_medico=paciente.diagnostico_medico,
-        avaliacao=paciente.avaliacao # [NOVO CAMPO AVALIAÇÃO]
+        avaliacao=paciente.avaliacao
     )
     db.add(db_paciente)
     db.commit()
@@ -219,9 +220,19 @@ def listar_agendamentos(start: datetime, end: datetime, db: Session = Depends(ge
             regra = rrulestr(evento.rrule, dtstart=evento.data_hora_inicio)
             duracao = evento.data_hora_fim - evento.data_hora_inicio
             
-            limite_futuro = datetime.now() + relativedelta(years=2)
+            # [CORREÇÃO DE FUSO HORÁRIO]
+            limite_futuro = datetime.now(dt.timezone.utc) + relativedelta(years=2)
+            
+            # Garante que 'end' também tenha fuso horário
+            if end.tzinfo is None:
+                end = end.replace(tzinfo=dt.timezone.utc)
+            
             if end > limite_futuro:
                 end = limite_futuro
+            
+            # Garante que 'start' também tenha fuso horário
+            if start.tzinfo is None:
+                start = start.replace(tzinfo=dt.timezone.utc)
 
             ocorrencias = regra.between(start, end, inc=True)
             
