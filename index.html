@@ -7,8 +7,10 @@
     
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js'></script>
     
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    
     <style>
-        /* [O CSS é o mesmo da resposta anterior, sem mudanças] */
         :root {
             --sidebar-bg: #2c3e50;
             --main-bg: #ecf0f1;
@@ -24,6 +26,7 @@
             --color-azul: #0d6efd;
             --color-vermelho: #dc3545;
         }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
@@ -32,6 +35,8 @@
             height: 100vh;
             overflow: hidden; 
         }
+
+        /* --- Estilos do Menu Lateral (Sidebar) --- */
         .sidebar {
             width: 240px;
             background-color: var(--sidebar-bg);
@@ -91,6 +96,8 @@
             font-size: 0.9em;
             text-align: center;
         }
+        
+        /* --- Estilos da Área Principal --- */
         .main-content {
             flex-grow: 1; 
             background-color: var(--main-bg);
@@ -98,6 +105,7 @@
             flex-direction: column;
             height: 100vh;
         }
+        
         .main-header {
             padding: 15px 25px;
             background-color: white;
@@ -115,15 +123,19 @@
             color: white;
             font-weight: bold;
         }
+        
         main {
             flex-grow: 1;
             padding: 20px;
             overflow-y: auto; 
             height: calc(100vh - 70px); 
         }
+
         .view-section {
             display: none; 
         }
+
+        /* --- Estilos do Calendário (Ajustados) --- */
         #calendar-container {
             max-width: 1100px;
             margin: 0 auto;
@@ -135,12 +147,17 @@
             font-weight: bold;
             text-align: center;
         }
+
+        /* --- Estilos dos Botões de Ação (Cores) --- */
         #btn-abrir-agendamento-manual { background-color: var(--color-azul); }
         #btn-agendar-por-voz { background-color: var(--color-amarelo); color: black; }
         #btn-abrir-lista-pacientes { background-color: var(--color-verde); }
         #btn-abrir-dashboard { background-color: var(--color-roxo); }
         #btn-abrir-modal-paciente { background-color: var(--color-azul-claro); color: black; }
         #btn-cadastro-rapido-voz { background-color: var(--color-laranja); }
+
+
+        /* --- Estilos dos Modais --- */
         .modal-container {
             display: none;
             position: fixed;
@@ -189,12 +206,14 @@
             border: none;
             cursor: pointer;
         }
+        
         #btn-checkin { background-color: #28a745; color: white; }
         #btn-cancelar { background-color: #ffc107; color: black; } 
         #btn-excluir-agendamento { background-color: #dc3545; color: white; }
         #btn-gravar { background-color: #dc3545; color: white; }
         #btn-salvar-evolucao { background-color: #007bff; color: white; }
         #status-gravacao { font-style: italic; color: #555; }
+
         .modal-content form { 
             display: flex; 
             flex-direction: column; 
@@ -216,6 +235,7 @@
             width: auto;
             margin-right: 10px;
         }
+
         .dias-semana-container {
             display: flex;
             flex-wrap: wrap; 
@@ -230,6 +250,8 @@
             font-size: 0.9em;
             margin-top: 0; 
         }
+
+
         .modal-content form input,
         .modal-content form select,
         .modal-content form textarea#paciente-diag,
@@ -247,12 +269,14 @@
             color: white; 
             margin-top: 20px;
         }
+
         #btn-salvar-agendamento,
         #btn-salvar-agendamento-manual {
             background-color: #28a745;
             color: white;
             margin-top: 20px;
         }
+
         .modal-table {
             width: 100%;
             border-collapse: collapse;
@@ -266,12 +290,14 @@
         .modal-table th {
             background-color: #f2f2f2;
         }
+        
         #lista-pacientes-tbody tr {
             cursor: pointer;
         }
         #lista-pacientes-tbody tr:hover {
             background-color: #f5f5f5;
         }
+        
         .btn-acao {
             padding: 5px 8px;
             font-size: 0.9em;
@@ -289,6 +315,7 @@
             background-color: var(--color-azul);
             color: white;
         }
+        
         #historico-evolucoes-content .evolucao-item {
             border-bottom: 1px solid #eee;
             padding: 10px 0;
@@ -311,6 +338,7 @@
             display: none;
             font-style: italic;
         }
+
         #dashboard-filtros {
             display: flex;
             gap: 15px;
@@ -322,12 +350,30 @@
             font-size: 1em;
             margin-top: 0;
         }
+
         #view-pacientes, #view-dashboard {
             background-color: white;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+        
+        /* [NOVO] Estilos do Toastify */
+        .toastify {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-size: 1em;
+            font-weight: bold;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+        }
+        .toastify.toast-success {
+            background: linear-gradient(to right, #00b09b, #96c93d);
+        }
+        .toastify.toast-error {
+            background: linear-gradient(to right, #ff5f6d, #ffc371);
+        }
+
+
         @media (max-width: 768px) {
             body {
                 flex-direction: column;
@@ -353,6 +399,7 @@
             .sidebar-buttons {
                 display: none; 
             }
+
             .main-content {
                 height: calc(100vh - 75px); 
             }
@@ -366,6 +413,7 @@
             main {
                 padding: 10px;
             }
+
             .modal-content {
                 width: 95%;
                 margin: 10px auto; 
@@ -599,6 +647,36 @@
             let pacienteIdEmEdicao = null;
             let currentSelectionInfo = null; 
 
+            // --- [NOVAS] Funções de Notificação (Toast) ---
+            function showToast(message, type = 'success') {
+                const backgroundColor = type === 'success' ? 
+                    "linear-gradient(to right, #00b09b, #96c93d)" : 
+                    "linear-gradient(to right, #ff5f6d, #ffc371)";
+                
+                Toastify({
+                    text: message,
+                    duration: 3000,
+                    close: true,
+                    gravity: "top", // `top` or `bottom`
+                    position: "right", // `left`, `center` or `right`
+                    stopOnFocus: true, // Prevents dismissing of toast on hover
+                    style: {
+                        background: backgroundColor,
+                        boxShadow: "0 3px 10px rgba(0, 0, 0, 0.2)",
+                        borderRadius: "5px",
+                        fontWeight: "bold"
+                    }
+                }).showToast();
+            }
+
+            function showSuccessToast(message) {
+                showToast(message, 'success');
+            }
+
+            function showErrorToast(message) {
+                showToast(message, 'error');
+            }
+            
             // --- Seletores (Modal Agendamento) ---
             const modalContainer = document.getElementById('modal-container');
             const modalAgendamentoClose = document.getElementById('modal-agendamento-close');
@@ -686,7 +764,7 @@
                         btnCadastroRapidoVoz.disabled = true;
                     } catch(e) {
                         console.error("Erro ao iniciar reconhecimento de voz:", e);
-                        alert("Erro ao iniciar microfone. Tente novamente.");
+                        showErrorToast("Erro ao iniciar microfone. Tente novamente.");
                     }
                 };
 
@@ -697,7 +775,7 @@
 
                 recognitionCadastro.onerror = (event) => {
                     console.error("Erro no reconhecimento de voz:", event.error);
-                    alert(`Erro na gravação: ${event.error}`);
+                    showErrorToast(`Erro na gravação: ${event.error}`);
                 };
 
                 recognitionCadastro.onresult = (event) => {
@@ -712,10 +790,10 @@
                             console.log(`Iniciando cadastro rápido por voz para: ${nomePaciente}`);
                             salvarPacienteRapido(nomePaciente);
                         } else {
-                            alert('Comando ouvido, mas o nome estava em branco. Tente "Cadastrar paciente NOME".');
+                            showErrorToast('Comando ouvido, mas o nome estava em branco. Tente "Cadastrar paciente NOME".');
                         }
                     } else {
-                        alert(`Comando não reconhecido. Diga, por exemplo: "Cadastrar paciente João da Silva".`);
+                        showErrorToast(`Comando não reconhecido. Diga, por exemplo: "Cadastrar paciente João da Silva".`);
                     }
                 };
 
@@ -750,16 +828,16 @@
 
                     if (response.ok) {
                         const pacienteCriado = await response.json();
-                        alert(`Paciente "${pacienteCriado.nome}" cadastrado com sucesso!`);
+                        showSuccessToast(`Paciente "${pacienteCriado.nome}" cadastrado com sucesso!`);
                         listaDePacientesCache.push(pacienteCriado); 
                     } else {
                         const error = await response.json();
                         console.error('Erro do backend (voz):', error);
-                        alert(`Erro ao cadastrar: ${JSON.stringify(error.detail)}`);
+                        showErrorToast(`Erro ao cadastrar: ${JSON.stringify(error.detail)}`);
                     }
                 } catch (error) {
                     console.error('Erro de rede no cadastro rápido:', error);
-                    alert('Erro ao conectar com a API.');
+                    showErrorToast('Erro ao conectar com a API.');
                 }
             }
             
@@ -779,7 +857,7 @@
                         btnAgendarPorVoz.textContent = "Ouvindo... 👂";
                         btnAgendarPorVoz.disabled = true;
                     } catch (e) {
-                        alert("Erro ao iniciar microfone.");
+                        showErrorToast("Erro ao iniciar microfone.");
                     }
                 };
 
@@ -789,14 +867,14 @@
                 };
 
                 recognitionAgendamento.onerror = (event) => {
-                    alert(`Erro na gravação: ${event.error}`);
+                    showErrorToast(`Erro na gravação: ${event.error}`);
                 };
 
                 recognitionAgendamento.onresult = async (event) => {
                     const texto = event.results[0][0].transcript.toLowerCase();
                     console.log("Comando ouvido:", texto);
                     if (!texto.startsWith("agendar")) {
-                        alert('Comando não reconhecido. Comece com "Agendar...".');
+                        showErrorToast('Comando não reconhecido. Comece com "Agendar...".');
                         return;
                     }
 
@@ -812,7 +890,7 @@
                         }
 
                     } catch (error) {
-                        alert(`Erro ao processar comando: ${error.message}`);
+                        showErrorToast(`Erro ao processar comando: ${error.message}`);
                     }
                 };
             } else {
@@ -890,17 +968,17 @@
                         body: JSON.stringify(novoAgendamento)
                     });
                     if (response.ok) {
-                        alert('Agendamento criado com sucesso!');
+                        showSuccessToast('Agendamento criado com sucesso!');
                         calendar.refetchEvents();
                         return true; 
                     } else {
                         const error = await response.json();
-                        alert(`Erro ao agendar: ${JSON.stringify(error.detail)}`);
+                        showErrorToast(`Erro ao agendar: ${JSON.stringify(error.detail)}`);
                         return false; 
                     }
                 } catch (error) { 
                     console.error('Erro de rede:', error); 
-                    alert('Erro de conexão ao tentar agendar.');
+                    showErrorToast('Erro de conexão ao tentar agendar.');
                     return false; 
                 }
             }
@@ -961,7 +1039,6 @@
                                     title: `${apiEvent.paciente.nome} (${apiEvent.status})`,
                                     start: apiEvent.data_hora_inicio,
                                     end: apiEvent.data_hora_fim,
-                                    // [MODIFICADO] Passa a data original para o evento
                                     extendedProps: { 
                                         apiEvent: apiEvent,
                                         dataOcorrencia: apiEvent.data_hora_inicio 
@@ -1075,7 +1152,6 @@
                 const apiEvent = clickInfo.event.extendedProps.apiEvent;
                 currentAgendamentoId = apiEvent.id; 
                 
-                // [NOVO] Salva a data da ocorrência clicada
                 currentSelectionInfo = { 
                     start: new Date(clickInfo.event.start),
                     isRecorrente: !!apiEvent.rrule
@@ -1099,7 +1175,6 @@
                 modalContainer.style.display = 'flex';
             }
 
-            // [MODIFICADO] handleEventDrop para perguntar sobre repetição
             async function handleEventDrop(dropInfo) {
                 const event = dropInfo.event;
                 const oldEvent = dropInfo.oldEvent;
@@ -1114,7 +1189,6 @@
                     dataFim = new Date(event.start.getTime() + duracao);
                 }
                 
-                // Se não for recorrente, apenas atualiza
                 if (!apiEvent.rrule) {
                     if (!confirm(`Mover o atendimento de "${event.title}" para ${event.start.toLocaleString('pt-BR')}?`)) {
                         dropInfo.revert();
@@ -1133,25 +1207,23 @@
                             body: JSON.stringify(updateData)
                         });
                         if (response.ok) {
-                            alert('Agendamento atualizado com sucesso!');
+                            showSuccessToast('Agendamento atualizado com sucesso!');
                             calendar.refetchEvents(); 
                         } else {
-                            alert('Erro ao atualizar o agendamento.');
+                            showErrorToast('Erro ao atualizar o agendamento.');
                             dropInfo.revert();
                         }
                     } catch (error) {
                         console.error('Erro de rede ao atualizar:', error);
-                        alert('Erro de conexão. A alteração será desfeita.');
+                        showErrorToast('Erro de conexão. A alteração será desfeita.');
                         dropInfo.revert();
                     }
                 } else {
-                    // [NOVO] Se for recorrente, pergunta ao usuário
                     if (!confirm(`Mover o atendimento de "${event.title}" para ${event.start.toLocaleString('pt-BR')}?\n\nClique em 'OK' para mover SÓ ESTA ocorrência.\nClique em 'Cancelar' para não fazer nada.`)) {
                         dropInfo.revert();
                         return;
                     }
                     
-                    // Usuário clicou em "OK" (Mover só esta)
                     const updateData = {
                         data_original: oldEvent.start.toISOString(),
                         novo_inicio: event.start.toISOString(),
@@ -1165,24 +1237,22 @@
                             body: JSON.stringify(updateData)
                         });
                         if (response.ok) {
-                            alert('Ocorrência movida com sucesso!');
+                            showSuccessToast('Ocorrência movida com sucesso!');
                             calendar.refetchEvents(); 
                         } else {
-                            alert('Erro ao mover a ocorrência.');
+                            showErrorToast('Erro ao mover a ocorrência.');
                             dropInfo.revert();
                         }
                     } catch (error) {
                         console.error('Erro de rede ao mover:', error);
-                        alert('Erro de conexão. A alteração será desfeita.');
+                        showErrorToast('Erro de conexão. A alteração será desfeita.');
                         dropInfo.revert();
                     }
                 }
             }
 
-            // [MODIFICADO] LÓGICA DO MODAL DE AGENDAMENTO (EVOLUÇÃO)
+            // --- LÓGICA DO MODAL DE AGENDAMENTO (EVOLUÇÃO) ---
             modalAgendamentoClose.onclick = () => modalContainer.style.display = 'none';
-            
-            // [MODIFICADO] Check-in agora cria exceção se for recorrente
             btnCheckin.onclick = async () => {
                 let url = `${API_URL}/agendamentos/${currentAgendamentoId}/checkin`;
                 let method = 'POST';
@@ -1203,17 +1273,15 @@
                         body: body
                     });
                     if (response.ok) {
-                        alert('Check-in realizado!');
+                        showSuccessToast('Check-in realizado!');
                         modalContainer.style.display = 'none';
                         calendar.refetchEvents();
                     } else {
                         const error = await response.json();
-                        alert(`Erro no check-in: ${JSON.stringify(error.detail)}`);
+                        showErrorToast(`Erro no check-in: ${JSON.stringify(error.detail)}`);
                     }
                 } catch (error) { console.error('Erro de rede:', error); }
             };
-
-            // [MODIFICADO] Cancelar agora cria exceção se for recorrente
             btnCancelar.onclick = async () => {
                 if (!confirm("Tem certeza que deseja CANCELAR este atendimento?")) { return; }
                 
@@ -1236,22 +1304,20 @@
                         body: body
                     });
                     if (response.ok) {
-                        alert('Agendamento cancelado com sucesso!');
+                        showSuccessToast('Agendamento cancelado com sucesso!');
                         modalContainer.style.display = 'none';
                         calendar.refetchEvents();
                     } else {
                         const error = await response.json();
-                        alert(`Erro ao cancelar: ${JSON.stringify(error.detail)}`);
+                        showErrorToast(`Erro ao cancelar: ${JSON.stringify(error.detail)}`);
                     }
                 } catch (error) { console.error('Erro de rede:', error); }
             };
             
-            // [MODIFICADO] Salvar Evolução só funciona em eventos "Presente" (que já são únicos)
             btnSalvarEvolucao.onclick = async () => {
                 const texto = textoEvolucao.value;
-                if (!texto) { alert('O campo de evolução está vazio.'); return; }
+                if (!texto) { showErrorToast('O campo de evolução está vazio.'); return; }
                 
-                // Encontra o ID real (pode ser o ID da regra ou o ID do evento único criado no check-in)
                 const eventoNaAgenda = calendar.getEventById(currentAgendamentoId);
                 const idRealParaSalvar = eventoNaAgenda.extendedProps.apiEvent.id;
 
@@ -1262,11 +1328,11 @@
                         body: JSON.stringify({ texto_evolucao: texto })
                     });
                     if (response.ok) {
-                        alert('Evolução salva com sucesso!');
+                        showSuccessToast('Evolução salva com sucesso!');
                         modalContainer.style.display = 'none';
                     } else {
                         const error = await response.json();
-                        alert(`Erro ao salvar evolução: ${JSON.stringify(error.detail)}`);
+                        showErrorToast(`Erro ao salvar evolução: ${JSON.stringify(error.detail)}`);
                     }
                 } catch (error) { console.error('Erro de rede:', error); }
             };
@@ -1283,16 +1349,16 @@
                     });
                     
                     if (response.ok) {
-                        alert('Agendamento excluído com sucesso!');
+                        showSuccessToast('Agendamento excluído com sucesso!');
                         modalContainer.style.display = 'none';
                         calendar.refetchEvents();
                     } else {
                         const error = await response.json();
-                        alert(`Erro ao excluir agendamento: ${JSON.stringify(error.detail)}`);
+                        showErrorToast(`Erro ao excluir agendamento: ${JSON.stringify(error.detail)}`);
                     }
                 } catch (error) { 
                     console.error('Erro de rede ao excluir agendamento:', error); 
-                    alert('Erro de conexão ao tentar excluir o agendamento.');
+                    showErrorToast('Erro de conexão ao tentar excluir o agendamento.');
                 }
             };
 
@@ -1327,7 +1393,7 @@
                 };
 
                 if (!dadosPaciente.nome) {
-                    alert('O campo Nome Completo é obrigatório.');
+                    showErrorToast('O campo Nome Completo é obrigatório.');
                     return;
                 }
 
@@ -1350,13 +1416,13 @@
                         const pacienteAtualizado = await response.json();
                         
                         if (pacienteIdEmEdicao) {
-                            alert(`Paciente "${pacienteAtualizado.nome}" atualizado com sucesso!`);
+                            showSuccessToast(`Paciente "${pacienteAtualizado.nome}" atualizado com sucesso!`);
                             const index = listaDePacientesCache.findIndex(p => p.id === pacienteIdEmEdicao);
                             if (index !== -1) {
                                 listaDePacientesCache[index] = pacienteAtualizado;
                             }
                         } else {
-                            alert(`Paciente "${pacienteAtualizado.nome}" cadastrado com sucesso! \nNovo ID: ${pacienteAtualizado.id}`);
+                            showSuccessToast(`Paciente "${pacienteAtualizado.nome}" cadastrado com sucesso!`);
                             listaDePacientesCache.push(pacienteAtualizado);
                         }
                         
@@ -1368,11 +1434,11 @@
                     } else {
                         const error = await response.json();
                         console.error('Erro do backend (form):', error);
-                        alert(`Erro ao salvar: ${JSON.stringify(error.detail)}`);
+                        showErrorToast(`Erro ao salvar: ${JSON.stringify(error.detail)}`);
                     }
                 } catch (error) {
                     console.error('Erro de rede:', error);
-                    alert('Erro ao conectar com a API.');
+                    showErrorToast('Erro ao conectar com a API.');
                 }
             };
 
@@ -1388,7 +1454,7 @@
                 const nomePaciente = inputPaciente.value;
                 
                 if (!nomePaciente) {
-                    alert('Por favor, digite o nome do paciente.');
+                    showErrorToast('Por favor, digite o nome do paciente.');
                     return;
                 }
 
@@ -1397,14 +1463,14 @@
                 );
 
                 if (!pacienteEncontrado) {
-                    alert('Paciente não encontrado. Por favor, selecione um nome válido da lista ou cadastre o paciente primeiro.');
+                    showErrorToast('Paciente não encontrado. Por favor, selecione um nome válido da lista ou cadastre o paciente primeiro.');
                     return;
                 }
                 
                 const pacienteId = pacienteEncontrado.id; 
                 
                 if (!currentSelectionInfo) {
-                    alert('Erro: Nenhuma informação de horário encontrada. Tente clicar novamente.');
+                    showErrorToast('Erro: Nenhuma informação de horário encontrada. Tente clicar novamente.');
                     return;
                 }
                 
@@ -1482,7 +1548,7 @@
                 });
 
                 if (!nomePaciente || !dataStr || !horaStr) {
-                    alert("Por favor, preencha todos os campos.");
+                    showErrorToast("Por favor, preencha todos os campos.");
                     return;
                 }
 
@@ -1491,7 +1557,7 @@
                 );
 
                 if (!pacienteEncontrado) {
-                    alert('Paciente não encontrado. Por favor, selecione um nome válido da lista ou cadastre o paciente primeiro.');
+                    showErrorToast('Paciente não encontrado. Por favor, selecione um nome válido da lista ou cadastre o paciente primeiro.');
                     return;
                 }
 
@@ -1641,18 +1707,18 @@
                     });
 
                     if (response.ok) {
-                        alert(`Paciente "${pacienteNome}" excluído com sucesso.`);
+                        showSuccessToast(`Paciente "${pacienteNome}" excluído com sucesso.`);
                         listaDePacientesCache = listaDePacientesCache.filter(p => p.id !== pacienteId);
                         abrirListaPacientes(); // Atualiza a tabela
                         calendar.refetchEvents(); 
                     } else {
                         const error = await response.json();
                         console.error('Erro ao excluir:', error);
-                        alert(`Erro ao excluir paciente: ${JSON.stringify(error.detail)}\n\n(Lembre-se: você não pode excluir um paciente que tenha agendamentos. Exclua-os permanentemente primeiro).`);
+                        showErrorToast(`Erro ao excluir paciente: ${JSON.stringify(error.detail)}\n\n(Lembre-se: você não pode excluir um paciente que tenha agendamentos. Exclua-os permanentemente primeiro).`);
                     }
                 } catch (error) {
                     console.error('Erro de rede ao excluir:', error);
-                    alert('Erro ao conectar com a API.');
+                    showErrorToast('Erro de conexão ao tentar excluir.');
                 }
             }
 
