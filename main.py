@@ -1,5 +1,5 @@
 # --- main.py ---
-# [CORRIGIDO] Corrige o bug de fuso horário (offset-naive vs offset-aware)
+# [ATUALIZADO] Adiciona lógica de 'exdates' (exceções) para repetições
 
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,7 +12,7 @@ from datetime import datetime, date
 import os
 from dateutil.rrule import rrule, rrulestr, rrulebase
 from dateutil.relativedelta import relativedelta
-import datetime as dt # [IMPORTADO] Para o timezone
+import datetime as dt
 
 # --- 1. CONFIGURAÇÃO DO BANCO DE DADOS ---
 
@@ -46,12 +46,15 @@ class Paciente(Base):
 class Agendamento(Base):
     __tablename__ = 'agendamentos'
     id = Column(Integer, primary_key=True, index=True)
-    data_hora_inicio = Column(DateTime(timezone=True), nullable=False) # Adiciona timezone=True
-    data_hora_fim = Column(DateTime(timezone=True), nullable=False) # Adiciona timezone=True
+    data_hora_inicio = Column(DateTime(timezone=True), nullable=False)
+    data_hora_fim = Column(DateTime(timezone=True), nullable=False)
     status = Column(PyEnum('Agendado', 'Presente', 'Cancelado', name='status_agendamento'), default='Agendado')
     
     paciente_id = Column(Integer, ForeignKey('pacientes.id', ondelete="CASCADE"), nullable=False)
     rrule = Column(String, nullable=True) 
+    
+    # [NOVO] Armazena datas a serem excluídas da regra (ex: "2025-11-18,2025-11-25")
+    exdates = Column(Text, nullable=True) 
     
     paciente = relationship("Paciente", back_populates="agendamentos")
     evolucao = relationship("Evolucao", uselist=False, back_populates="agendamento", cascade="all, delete-orphan")
@@ -60,7 +63,7 @@ class Evolucao(Base):
     __tablename__ = 'evolucoes'
     id = Column(Integer, primary_key=True, index=True)
     texto_evolucao = Column(Text, nullable=False)
-    data_criacao = Column(DateTime(timezone=True), default=datetime.utcnow) # Adiciona timezone=True
+    data_criacao = Column(DateTime(timezone=True), default=datetime.utcnow)
     
     agendamento_id = Column(Integer, ForeignKey('agendamentos.id'), nullable=False)
     paciente_id = Column(Integer, ForeignKey('pacientes.id'), nullable=False)
@@ -68,7 +71,7 @@ class Evolucao(Base):
     agendamento = relationship("Agendamento", back_populates="evolucao")
     paciente = relationship("Paciente", back_populates="evolucoes")
 
-# Cria as tabelas
+# Cria as tabelas (e a nova coluna 'exdates')
 Base.metadata.create_all(bind=engine)
 
 # --- 3. SCHEMAS (Pydantic - Validação de dados da API) ---
@@ -108,7 +111,20 @@ class AgendamentoSchema(BaseModel):
     status: str
     paciente: PacienteSchema 
     rrule: Optional[str] = None 
+    exdates: Optional[str] = None # [NOVO]
+    
     model_config = ConfigDict(from_attributes=True)
+    
+# [NOVO] Schema para criar uma exceção
+class OcorrenciaUpdate(BaseModel):
+    data_original: datetime # A data que será "pulada"
+    novo_inicio: datetime
+    novo_fim: datetime
+    
+# [NOVO] Schema para atualizar status de uma ocorrência
+class OcorrenciaStatus(BaseModel):
+    data_ocorrencia: datetime
+    novo_status: str
 
 class DashboardSessao(BaseModel):
     nome_paciente: str
@@ -211,32 +227,43 @@ def listar_agendamentos(start: datetime, end: datetime, db: Session = Depends(ge
     agendamentos_base = db.query(Agendamento).all()
     
     eventos_finais = []
-    
-    # [CORREÇÃO DE FUSO HORÁRIO]
-    # Define o fuso horário (timezone) como UTC, que é o que o FullCalendar envia
     tz = dt.timezone.utc 
     
     for evento in agendamentos_base:
         if not evento.rrule:
+            # Evento único
             if evento.data_hora_inicio < end and evento.data_hora_fim > start:
                 eventos_finais.append(evento)
         else:
-            # Garante que a data de início da regra (dtstart) tenha o fuso horário
+            # Evento recorrente
             dtstart = evento.data_hora_inicio.replace(tzinfo=tz)
             
             regra = rrulestr(evento.rrule, dtstart=dtstart) 
             duracao = evento.data_hora_fim - evento.data_hora_inicio
             
-            # Cria o limite futuro com o mesmo fuso horário
+            # [NOVO] Carrega a lista de exceções
+            excecoes = []
+            if evento.exdates:
+                excecoes_str = evento.exdates.split(',')
+                for ex_str in excecoes_str:
+                    try:
+                        excecoes.append(datetime.fromisoformat(ex_str).replace(tzinfo=tz))
+                    except ValueError:
+                        pass # Ignora datas mal formatadas
+
             limite_futuro = datetime.now(tz) + relativedelta(years=2)
             
-            if end > limite_futuro:
-                end = limite_futuro
+            if end.tzinfo is None: end = end.replace(tzinfo=tz) 
+            if end > limite_futuro: end = limite_futuro
+            if start.tzinfo is None: start = start.replace(tzinfo=tz) 
 
-            # Agora 'start', 'end', e as datas da 'regra' estão todas em UTC
             ocorrencias = regra.between(start, end, inc=True)
             
             for inicio in ocorrencias:
+                # [NOVO] Pula a data se ela estiver na lista de exceções
+                if inicio in excecoes:
+                    continue
+                
                 fim = inicio + duracao
                 
                 evento_virtual = Agendamento(
@@ -246,6 +273,7 @@ def listar_agendamentos(start: datetime, end: datetime, db: Session = Depends(ge
                     status=evento.status,
                     paciente_id=evento.paciente_id,
                     rrule=evento.rrule,
+                    exdates=evento.exdates,
                     paciente=evento.paciente
                 )
                 eventos_finais.append(evento_virtual)
@@ -272,16 +300,15 @@ def criar_agendamento(agendamento: AgendamentoCreate, db: Session = Depends(get_
 
 @app.patch("/agendamentos/{agendamento_id}", response_model=AgendamentoSchema)
 def atualizar_data_agendamento(agendamento_id: int, update_data: AgendamentoUpdate, db: Session = Depends(get_db)):
-    db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
+    # Esta rota agora só deve ser usada para eventos NÃO-RECORRENTES
+    db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id, Agendamento.rrule == None).first()
     if db_agendamento is None:
-        raise HTTPException(status_code=404, detail="Agendamento not found")
+        raise HTTPException(status_code=404, detail="Agendamento não-recorrente não encontrado")
     
     try:
         update_data_dict = update_data.model_dump(exclude_unset=True)
-        
         for key, value in update_data_dict.items():
             setattr(db_agendamento, key, value)
-            
         db.commit() 
         db.refresh(db_agendamento)
         return db_agendamento
@@ -300,11 +327,78 @@ def deletar_agendamento(agendamento_id: int, db: Session = Depends(get_db)):
     return {"detail": "Agendamento deletado com sucesso"}
 
 # --- Rotas de AÇÕES (Check-in, Cancelar) ---
+
+# [NOVA ROTA] Para mover uma única ocorrência
+@app.post("/agendamentos/{agendamento_id}/mover_ocorrencia", response_model=AgendamentoSchema)
+def mover_ocorrencia(agendamento_id: int, update: OcorrenciaUpdate, db: Session = Depends(get_db)):
+    # 1. Encontra a regra-pai
+    regra_pai = db.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
+    if regra_pai is None or regra_pai.rrule is None:
+        raise HTTPException(status_code=404, detail="Regra de agendamento não encontrada")
+        
+    # 2. Adiciona a data original à lista de exceções
+    data_excecao_str = update.data_original.isoformat()
+    if regra_pai.exdates:
+        if data_excecao_str not in regra_pai.exdates:
+            regra_pai.exdates += f",{data_excecao_str}"
+    else:
+        regra_pai.exdates = data_excecao_str
+    
+    db.commit()
+
+    # 3. Cria um novo agendamento, único, no novo horário
+    novo_agendamento_unico = Agendamento(
+        paciente_id=regra_pai.paciente_id,
+        data_hora_inicio=update.novo_inicio,
+        data_hora_fim=update.novo_fim,
+        status='Agendado',
+        rrule=None # É um evento único
+    )
+    db.add(novo_agendamento_unico)
+    db.commit()
+    db.refresh(novo_agendamento_unico)
+    
+    return novo_agendamento_unico
+
+# [NOVA ROTA] Para fazer check-in ou cancelar uma única ocorrência
+@app.post("/agendamentos/{agendamento_id}/status_ocorrencia", response_model=AgendamentoSchema)
+def status_ocorrencia(agendamento_id: int, update: OcorrenciaStatus, db: Session = Depends(get_db)):
+    regra_pai = db.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
+    if regra_pai is None or regra_pai.rrule is None:
+        raise HTTPException(status_code=404, detail="Regra de agendamento não encontrada")
+
+    # 1. Adiciona a data da ocorrência à lista de exceções
+    data_excecao_str = update.data_ocorrencia.isoformat()
+    if regra_pai.exdates:
+        if data_excecao_str not in regra_pai.exdates:
+            regra_pai.exdates += f",{data_excecao_str}"
+    else:
+        regra_pai.exdates = data_excecao_str
+    
+    db.commit()
+
+    # 2. Cria um novo agendamento, único, com o status atualizado
+    duracao = regra_pai.data_hora_fim - regra_pai.data_hora_inicio
+    novo_agendamento_unico = Agendamento(
+        paciente_id=regra_pai.paciente_id,
+        data_hora_inicio=update.data_ocorrencia,
+        data_hora_fim=update.data_ocorrencia + duracao,
+        status=update.novo_status, # 'Presente' ou 'Cancelado'
+        rrule=None 
+    )
+    db.add(novo_agendamento_unico)
+    db.commit()
+    db.refresh(novo_agendamento_unico)
+    
+    return novo_agendamento_unico
+
+
+# [ROTAS ANTIGAS - MODIFICADAS] Agora só funcionam para eventos únicos
 @app.post("/agendamentos/{agendamento_id}/checkin", response_model=AgendamentoSchema)
 def fazer_checkin(agendamento_id: int, db: Session = Depends(get_db)):
-    db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
+    db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id, Agendamento.rrule == None).first()
     if db_agendamento is None:
-        raise HTTPException(status_code=404, detail="Agendamento not found")
+        raise HTTPException(status_code=404, detail="Agendamento não-recorrente não encontrado")
     
     db_agendamento.status = 'Presente'
     db.commit()
@@ -313,9 +407,9 @@ def fazer_checkin(agendamento_id: int, db: Session = Depends(get_db)):
 
 @app.post("/agendamentos/{agendamento_id}/cancelar", response_model=AgendamentoSchema)
 def cancelar_atendimento(agendamento_id: int, db: Session = Depends(get_db)):
-    db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
+    db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id, Agendamento.rrule == None).first()
     if db_agendamento is None:
-        raise HTTPException(status_code=404, detail="Agendamento not found")
+        raise HTTPException(status_code=404, detail="Agendamento não-recorrente não encontrado")
     
     db_agendamento.status = 'Cancelado'
     db.commit()
@@ -330,6 +424,10 @@ def criar_evolucao(agendamento_id: int, evolucao: EvolucaoCreate, db: Session = 
     if db_agendamento is None:
         raise HTTPException(status_code=404, detail="Agendamento not found")
     
+    # [MODIFICADO] Evolução só pode ser adicionada a eventos não-recorrentes
+    if db_agendamento.rrule:
+        raise HTTPException(status_code=400, detail="Não é possível adicionar evolução a uma regra. Faça o check-in primeiro.")
+        
     if db_agendamento.evolucao:
         raise HTTPException(status_code=400, detail="Este agendamento já possui uma evolução")
 
@@ -364,7 +462,7 @@ def get_dashboard_sessoes(ano: int, mes: int, db: Session = Depends(get_db)):
     ).filter(
         Agendamento.status == 'Presente',
         extract('year', Agendamento.data_hora_inicio) == ano,
-        extract('month', Agendamento.data_hora_inicio) == mes
+        extract('month', Agendamento.data_hora_fim) == mes
     ).group_by(
         Paciente.nome
     ).order_by(
