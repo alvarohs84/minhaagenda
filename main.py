@@ -1,5 +1,5 @@
 # --- main.py ---
-# [ATUALIZADO] Configurado para usar PostgreSQL (DATABASE_URL) do Render.
+# [ATUALIZADO] Adiciona o campo 'avaliacao' ao Paciente
 
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,18 +9,17 @@ from sqlalchemy.orm import declarative_base
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime, date
-import os  # <--- IMPORTADO PARA LER A DATABASE_URL
+import os
+from dateutil.rrule import rrule, rrulestr, rrulebase
+from dateutil.relativedelta import relativedelta
 
 # --- 1. CONFIGURAÇÃO DO BANCO DE DADOS ---
 
-# [MODIFICADO] Lê a URL do banco de dados das variáveis de ambiente do Render
 SQLALCHEMY_DATABASE_URL = os.environ.get("DATABASE_URL")
 
-# Se não encontrar a URL (para testes locais), usa o SQLite.
 if SQLALCHEMY_DATABASE_URL is None:
     print("ALERTA: DATABASE_URL não encontrada, usando SQLite local (temporário).")
     SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
-# Ajusta a URL do Heroku/Render (que usa 'postgres://') para a do SQLAlchemy (que usa 'postgresql://')
 elif SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
     SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
@@ -38,6 +37,7 @@ class Paciente(Base):
     data_nascimento = Column(DateTime, nullable=True) 
     sexo = Column(String, nullable=True)
     diagnostico_medico = Column(String, nullable=True)
+    avaliacao = Column(Text, nullable=True) # [NOVO CAMPO AVALIAÇÃO]
     
     agendamentos = relationship("Agendamento", back_populates="paciente", cascade="all, delete-orphan")
     evolucoes = relationship("Evolucao", back_populates="paciente", cascade="all, delete-orphan")
@@ -50,6 +50,7 @@ class Agendamento(Base):
     status = Column(PyEnum('Agendado', 'Presente', 'Cancelado', name='status_agendamento'), default='Agendado')
     
     paciente_id = Column(Integer, ForeignKey('pacientes.id', ondelete="CASCADE"), nullable=False)
+    rrule = Column(String, nullable=True) 
     
     paciente = relationship("Paciente", back_populates="agendamentos")
     evolucao = relationship("Evolucao", uselist=False, back_populates="agendamento", cascade="all, delete-orphan")
@@ -66,7 +67,7 @@ class Evolucao(Base):
     agendamento = relationship("Agendamento", back_populates="evolucao")
     paciente = relationship("Paciente", back_populates="evolucoes")
 
-# Cria as tabelas no banco de dados
+# Cria as tabelas (e a nova coluna 'avaliacao')
 Base.metadata.create_all(bind=engine)
 
 # --- 3. SCHEMAS (Pydantic - Validação de dados da API) ---
@@ -77,6 +78,7 @@ class PacienteBase(BaseModel):
     data_nascimento: Optional[date] = None
     sexo: Optional[str] = None
     diagnostico_medico: Optional[str] = None
+    avaliacao: Optional[str] = None # [NOVO CAMPO AVALIAÇÃO]
 
 class PacienteCreate(PacienteBase):
     pass
@@ -92,6 +94,7 @@ class AgendamentoCreate(BaseModel):
     paciente_id: int
     data_hora_inicio: datetime
     data_hora_fim: datetime
+    rrule: Optional[str] = None 
 
 class AgendamentoUpdate(BaseModel):
     data_hora_inicio: datetime
@@ -103,6 +106,7 @@ class AgendamentoSchema(BaseModel):
     data_hora_fim: datetime
     status: str
     paciente: PacienteSchema 
+    rrule: Optional[str] = None 
     model_config = ConfigDict(from_attributes=True)
 
 class DashboardSessao(BaseModel):
@@ -149,7 +153,8 @@ def criar_paciente(paciente: PacienteCreate, db: Session = Depends(get_db)):
         telefone=paciente.telefone,
         data_nascimento=data_nasc,
         sexo=paciente.sexo,
-        diagnostico_medico=paciente.diagnostico_medico
+        diagnostico_medico=paciente.diagnostico_medico,
+        avaliacao=paciente.avaliacao # [NOVO CAMPO AVALIAÇÃO]
     )
     db.add(db_paciente)
     db.commit()
@@ -201,9 +206,40 @@ def deletar_paciente(paciente_id: int, db: Session = Depends(get_db)):
 # --- Rotas de AGENDAMENTO ---
 
 @app.get("/agendamentos", response_model=List[AgendamentoSchema])
-def listar_agendamentos(db: Session = Depends(get_db)):
-    agendamentos = db.query(Agendamento).all()
-    return agendamentos
+def listar_agendamentos(start: datetime, end: datetime, db: Session = Depends(get_db)):
+    agendamentos_base = db.query(Agendamento).all()
+    
+    eventos_finais = []
+    
+    for evento in agendamentos_base:
+        if not evento.rrule:
+            if evento.data_hora_inicio < end and evento.data_hora_fim > start:
+                eventos_finais.append(evento)
+        else:
+            regra = rrulestr(evento.rrule, dtstart=evento.data_hora_inicio)
+            duracao = evento.data_hora_fim - evento.data_hora_inicio
+            
+            limite_futuro = datetime.now() + relativedelta(years=2)
+            if end > limite_futuro:
+                end = limite_futuro
+
+            ocorrencias = regra.between(start, end, inc=True)
+            
+            for inicio in ocorrencias:
+                fim = inicio + duracao
+                
+                evento_virtual = Agendamento(
+                    id=evento.id,
+                    data_hora_inicio=inicio,
+                    data_hora_fim=fim,
+                    status=evento.status,
+                    paciente_id=evento.paciente_id,
+                    rrule=evento.rrule,
+                    paciente=evento.paciente
+                )
+                eventos_finais.append(evento_virtual)
+
+    return eventos_finais
 
 @app.post("/agendamentos", response_model=AgendamentoSchema, status_code=status.HTTP_201_CREATED)
 def criar_agendamento(agendamento: AgendamentoCreate, db: Session = Depends(get_db)):
@@ -215,7 +251,8 @@ def criar_agendamento(agendamento: AgendamentoCreate, db: Session = Depends(get_
         paciente_id=agendamento.paciente_id,
         data_hora_inicio=agendamento.data_hora_inicio,
         data_hora_fim=agendamento.data_hora_fim,
-        status='Agendado'
+        status='Agendado',
+        rrule=agendamento.rrule 
     )
     db.add(db_agendamento)
     db.commit()
@@ -252,7 +289,6 @@ def deletar_agendamento(agendamento_id: int, db: Session = Depends(get_db)):
     return {"detail": "Agendamento deletado com sucesso"}
 
 # --- Rotas de AÇÕES (Check-in, Cancelar) ---
-
 @app.post("/agendamentos/{agendamento_id}/checkin", response_model=AgendamentoSchema)
 def fazer_checkin(agendamento_id: int, db: Session = Depends(get_db)):
     db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
@@ -275,8 +311,8 @@ def cancelar_atendimento(agendamento_id: int, db: Session = Depends(get_db)):
     db.refresh(db_agendamento)
     return db_agendamento
 
-# --- Rotas de EVOLUÇÃO ---
 
+# --- Rotas de EVOLUÇÃO ---
 @app.post("/agendamentos/{agendamento_id}/evolucoes", status_code=status.HTTP_201_CREATED)
 def criar_evolucao(agendamento_id: int, evolucao: EvolucaoCreate, db: Session = Depends(get_db)):
     db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
@@ -305,7 +341,6 @@ def listar_evolucoes_paciente(paciente_id: int, db: Session = Depends(get_db)):
     return evolucoes
 
 # --- Rota de DASHBOARD ---
-
 @app.get("/dashboard/sessoes-por-mes", response_model=List[DashboardSessao])
 def get_dashboard_sessoes(ano: int, mes: int, db: Session = Depends(get_db)):
     from sqlalchemy import func, extract
