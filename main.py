@@ -12,7 +12,7 @@ from datetime import datetime, date
 import os
 from dateutil.rrule import rrule, rrulestr, rrulebase
 from dateutil.relativedelta import relativedelta
-import datetime as dt # [NOVO] Import para o timezone
+import datetime as dt # [IMPORTADO] Para o timezone
 
 # --- 1. CONFIGURAÇÃO DO BANCO DE DADOS ---
 
@@ -46,8 +46,8 @@ class Paciente(Base):
 class Agendamento(Base):
     __tablename__ = 'agendamentos'
     id = Column(Integer, primary_key=True, index=True)
-    data_hora_inicio = Column(DateTime(timezone=True), nullable=False) # [MODIFICADO] Adiciona timezone=True
-    data_hora_fim = Column(DateTime(timezone=True), nullable=False) # [MODIFICADO] Adiciona timezone=True
+    data_hora_inicio = Column(DateTime(timezone=True), nullable=False) # Adiciona timezone=True
+    data_hora_fim = Column(DateTime(timezone=True), nullable=False) # Adiciona timezone=True
     status = Column(PyEnum('Agendado', 'Presente', 'Cancelado', name='status_agendamento'), default='Agendado')
     
     paciente_id = Column(Integer, ForeignKey('pacientes.id', ondelete="CASCADE"), nullable=False)
@@ -60,7 +60,7 @@ class Evolucao(Base):
     __tablename__ = 'evolucoes'
     id = Column(Integer, primary_key=True, index=True)
     texto_evolucao = Column(Text, nullable=False)
-    data_criacao = Column(DateTime(timezone=True), default=datetime.utcnow) # [MODIFICADO] Adiciona timezone=True
+    data_criacao = Column(DateTime(timezone=True), default=datetime.utcnow) # Adiciona timezone=True
     
     agendamento_id = Column(Integer, ForeignKey('agendamentos.id'), nullable=False)
     paciente_id = Column(Integer, ForeignKey('pacientes.id'), nullable=False)
@@ -68,7 +68,7 @@ class Evolucao(Base):
     agendamento = relationship("Agendamento", back_populates="evolucao")
     paciente = relationship("Paciente", back_populates="evolucoes")
 
-# Cria as tabelas (e a nova coluna 'avaliacao')
+# Cria as tabelas
 Base.metadata.create_all(bind=engine)
 
 # --- 3. SCHEMAS (Pydantic - Validação de dados da API) ---
@@ -212,28 +212,28 @@ def listar_agendamentos(start: datetime, end: datetime, db: Session = Depends(ge
     
     eventos_finais = []
     
+    # [CORREÇÃO DE FUSO HORÁRIO]
+    # Define o fuso horário (timezone) como UTC, que é o que o FullCalendar envia
+    tz = dt.timezone.utc 
+    
     for evento in agendamentos_base:
         if not evento.rrule:
             if evento.data_hora_inicio < end and evento.data_hora_fim > start:
                 eventos_finais.append(evento)
         else:
-            regra = rrulestr(evento.rrule, dtstart=evento.data_hora_inicio)
+            # Garante que a data de início da regra (dtstart) tenha o fuso horário
+            dtstart = evento.data_hora_inicio.replace(tzinfo=tz)
+            
+            regra = rrulestr(evento.rrule, dtstart=dtstart) 
             duracao = evento.data_hora_fim - evento.data_hora_inicio
             
-            # [CORREÇÃO DE FUSO HORÁRIO]
-            limite_futuro = datetime.now(dt.timezone.utc) + relativedelta(years=2)
-            
-            # Garante que 'end' também tenha fuso horário
-            if end.tzinfo is None:
-                end = end.replace(tzinfo=dt.timezone.utc)
+            # Cria o limite futuro com o mesmo fuso horário
+            limite_futuro = datetime.now(tz) + relativedelta(years=2)
             
             if end > limite_futuro:
                 end = limite_futuro
-            
-            # Garante que 'start' também tenha fuso horário
-            if start.tzinfo is None:
-                start = start.replace(tzinfo=dt.timezone.utc)
 
+            # Agora 'start', 'end', e as datas da 'regra' estão todas em UTC
             ocorrencias = regra.between(start, end, inc=True)
             
             for inicio in ocorrencias:
