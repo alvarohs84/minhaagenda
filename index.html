@@ -358,7 +358,7 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
-        /* [NOVO] Estilos do Toastify */
+        /* Estilos do Toastify */
         .toastify {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             font-size: 1em;
@@ -664,7 +664,8 @@
                         background: backgroundColor,
                         boxShadow: "0 3px 10px rgba(0, 0, 0, 0.2)",
                         borderRadius: "5px",
-                        fontWeight: "bold"
+                        fontWeight: "bold",
+                        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
                     }
                 }).showToast();
             }
@@ -676,7 +677,7 @@
             function showErrorToast(message) {
                 showToast(message, 'error');
             }
-            
+
             // --- Seletores (Modal Agendamento) ---
             const modalContainer = document.getElementById('modal-container');
             const modalAgendamentoClose = document.getElementById('modal-agendamento-close');
@@ -746,7 +747,7 @@
             const viewDashboard = document.getElementById('view-dashboard');
             const allViews = [viewAgenda, viewPacientes, viewDashboard];
             const allNavLinks = [navAgenda, navPacientes, navDashboard];
-
+            
             // --- Lógica da API de Voz para CADASTRO RÁPIDO ---
             const SpeechRecognitionCadastro = window.SpeechRecognition || window.webkitSpeechRecognition;
             let recognitionCadastro;
