@@ -252,7 +252,7 @@
         .modal-content form input,
         .modal-content form select,
         .modal-content form textarea#paciente-diag,
-        .modal-content form textarea#paciente-avaliacao { /* [NOVO] */
+        .modal-content form textarea#paciente-avaliacao { 
             width: 95%;
             padding: 8px;
             font-size: 1em;
@@ -308,7 +308,6 @@
             background-color: var(--color-vermelho); 
             color: white;
         }
-        /* [NOVO] Estilo para o botão de prontuário */
         .btn-acao-prontuario {
             background-color: var(--color-azul);
             color: white;
@@ -349,7 +348,6 @@
             margin-top: 0;
         }
 
-        /* --- Estilos para as "páginas" --- */
         #view-pacientes, #view-dashboard {
             background-color: white;
             padding: 20px;
@@ -446,7 +444,7 @@
 
             <div id="view-pacientes" class="view-section">
                 <h3>Pacientes Cadastrados</h3>
-                <p style="font-size: 0.9em; color: #555;">Clique em um paciente para ver seu histórico de evoluções.</p>
+                <p style="font-size: 0.9em; color: #555;">Clique no ícone 📄 para ver o prontuário (avaliação e evoluções).</p>
                 <div id="lista-pacientes-resultados">
                     <table class="modal-table">
                         <thead>
@@ -604,10 +602,17 @@
     <div id="modal-historico-container" class="modal-container">
         <div class="modal-content">
             <span class="modal-close" id="modal-historico-close">&times;</span>
-            <h3>Histórico de <span id="historico-nome-paciente"></span></h3>
-            <p id="loading-historico">Carregando histórico...</p>
-            <div id="historico-evolucoes-content">
+            <h3>Prontuário de <span id="historico-nome-paciente"></span></h3>
+            
+            <h4>Avaliação Fisioterapêutica</h4>
+            <div id="prontuario-avaliacao" style="white-space: pre-wrap; background: #f9f9f9; border: 1px solid #eee; padding: 10px; border-radius: 4px; min-height: 100px;">
+                (Carregando avaliação...)
             </div>
+
+            <h4 style="margin-top: 20px;">Evoluções Diárias</h4>
+            <p id="loading-historico">Carregando evoluções...</p>
+            <div id="historico-evolucoes-content">
+                </div>
         </div>
     </div>
 
@@ -677,6 +682,7 @@
             const historicoNomePaciente = document.getElementById('historico-nome-paciente');
             const loadingHistorico = document.getElementById('loading-historico');
             const historicoEvolucoesContent = document.getElementById('historico-evolucoes-content');
+            const prontuarioAvaliacao = document.getElementById('prontuario-avaliacao'); // [NOVO]
 
             // --- Seletores de Voz ---
             const btnCadastroRapidoVoz = document.getElementById('btn-cadastro-rapido-voz');
@@ -773,7 +779,6 @@
                     data_nascimento: '1900-01-01', 
                     sexo: 'Outro',               
                     diagnostico_medico: ""
-                    // avaliacao não é incluída no cadastro rápido
                 };
 
                 try {
@@ -1239,7 +1244,17 @@
             };
 
             // --- LÓGICA DA API DE VOZ (EVOLUÇÃO) ---
-            // ... (código da voz de evolução, sem mudanças) ...
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            let recognition;
+            if (SpeechRecognition) {
+                // ... (código da voz de evolução, sem mudanças) ...
+            } else {
+                statusGravacao.textContent = 'Seu navegador não suporta a API de Voz.';
+                btnGravar.disabled = true;
+            }
+            btnGravar.onclick = () => {
+                // ... (código da voz de evolução, sem mudanças) ...
+            };
             
             // --- LÓGICA DO MODAL DE CADASTRO DE PACIENTE (CRIAR E EDITAR) ---
             btnAbrirModalPaciente.onclick = () => {
@@ -1355,6 +1370,13 @@
                     diasSelecionados.push(cb.value);
                 });
 
+                // [CORREÇÃO LÓGICA] Garante que o dia clicado esteja na regra
+                const diasRRule = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+                const diaDaSemanaInicio = diasRRule[currentSelectionInfo.start.getDay()];
+                if (diasSelecionados.length > 0 && !diasSelecionados.includes(diaDaSemanaInicio)) {
+                    diasSelecionados.push(diaDaSemanaInicio);
+                }
+
                 let rruleStr = null;
                 if (diasSelecionados.length > 0) {
                     rruleStr = `FREQ=WEEKLY;BYDAY=${diasSelecionados.join(',')}`;
@@ -1396,7 +1418,7 @@
                     document.querySelectorAll('input[name="dia-semana"]').forEach(cb => cb.checked = false);
                     const dataObj = new Date(dataStr + 'T00:00:00'); 
                     const diasRRule = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
-                    const diaDaSemana = diasRRule[dataObj.getUTCDay()]; 
+                    const diaDaSemana = diasRRule[dataObj.getUTCDay()]; // Correto usar UTC para datas
                     
                     const checkboxAlvo = document.querySelector(`#form-agendamento-manual input[name="dia-semana"][value="${diaDaSemana}"]`);
                     if (checkboxAlvo) {
@@ -1434,6 +1456,13 @@
                 const dataInicio = new Date(`${dataStr}T${horaStr}`);
                 const dataFim = new Date(dataInicio.getTime() + 55 * 60000); 
 
+                // [CORREÇÃO LÓGICA] Garante que o dia da data de início esteja na regra
+                const diasRRule = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+                const diaDaSemanaInicio = diasRRule[dataInicio.getDay()]; 
+                if (diasSelecionados.length > 0 && !diasSelecionados.includes(diaDaSemanaInicio)) {
+                    diasSelecionados.push(diaDaSemanaInicio);
+                }
+                
                 let rruleStr = null;
                 if (diasSelecionados.length > 0) {
                     rruleStr = `FREQ=WEEKLY;BYDAY=${diasSelecionados.join(',')}`;
@@ -1493,12 +1522,8 @@
                         const tdTel = document.createElement('td');
                         tdTel.textContent = paciente.telefone || 'N/A';
                         
-                        // [MODIFICADO] Clique no nome/id/tel não abre mais o histórico
-                        // [tdId, tdNome, tdTel].forEach(td => {
-                        //     td.onclick = () => abrirHistoricoPaciente(paciente.id, paciente.nome);
-                        //     td.style.cursor = 'pointer'; 
-                        // });
-
+                        // [MODIFICADO] Clique na linha não faz mais nada
+                        
                         const tdAcoes = document.createElement('td');
                         
                         const btnEditar = document.createElement('button');
@@ -1519,19 +1544,18 @@
                             handleExcluirPaciente(paciente.id, paciente.nome);
                         };
                         
-                        // [NOVO] Botão de Prontuário (Evoluções)
                         const btnProntuario = document.createElement('button');
                         btnProntuario.textContent = '📄';
                         btnProntuario.title = 'Ver Evoluções (Prontuário)';
                         btnProntuario.className = 'btn-acao btn-acao-prontuario';
                         btnProntuario.onclick = (e) => {
                             e.stopPropagation();
-                            abrirHistoricoPaciente(paciente.id, paciente.nome);
+                            abrirHistoricoPaciente(paciente); // [MODIFICADO] Passa o objeto paciente inteiro
                         };
 
                         tdAcoes.appendChild(btnEditar);
                         tdAcoes.appendChild(btnExcluir);
-                        tdAcoes.appendChild(btnProntuario); // Adiciona o novo botão
+                        tdAcoes.appendChild(btnProntuario); 
                         
                         tr.appendChild(tdId);
                         tr.appendChild(tdNome);
@@ -1562,7 +1586,7 @@
 
                 document.getElementById('paciente-sexo').value = paciente.sexo || '';
                 document.getElementById('paciente-diag').value = paciente.diagnostico_medico || '';
-                document.getElementById('paciente-avaliacao').value = paciente.avaliacao || ''; // [NOVO]
+                document.getElementById('paciente-avaliacao').value = paciente.avaliacao || ''; 
                 
                 modalPacienteContainer.style.display = 'flex';
             }
@@ -1596,21 +1620,27 @@
 
             // --- LÓGICA DO MODAL HISTÓRICO DE EVOLUÇÕES ---
             modalHistoricoClose.onclick = () => modalHistoricoContainer.style.display = 'none';
-            async function abrirHistoricoPaciente(pacienteId, pacienteNome) {
-                historicoNomePaciente.textContent = pacienteNome;
+            
+            // [MODIFICADO] para mostrar a Avaliação
+            async function abrirHistoricoPaciente(paciente) {
+                historicoNomePaciente.textContent = paciente.nome;
                 loadingHistorico.style.display = 'block';
                 historicoEvolucoesContent.innerHTML = "";
+                
+                // Mostra a avaliação
+                prontuarioAvaliacao.textContent = paciente.avaliacao || "(Nenhuma avaliação registrada)";
+                
                 modalHistoricoContainer.style.display = 'flex';
                 
                 try {
-                    const response = await fetch(`${API_URL}/pacientes/${pacienteId}/evolucoes`);
+                    const response = await fetch(`${API_URL}/pacientes/${paciente.id}/evolucoes`);
                     if (!response.ok) {
                         throw new Error('Erro ao buscar histórico.');
                     }
                     const evolucoes = await response.json();
                     
                     if (evolucoes.length === 0) {
-                        historicoEvolucoesContent.innerHTML = "<p>Nenhuma evolução registrada para este paciente.</p>";
+                        historicoEvolucoesContent.innerHTML = "<p>Nenhuma evolução diária registrada para este paciente.</p>";
                     } else {
                         evolucoes.sort((a, b) => new Date(b.data_criacao) - new Date(a.data_criacao));
 
@@ -1640,7 +1670,6 @@
                     modalPacienteContainer.style.display = 'none';
                     pacienteIdEmEdicao = null; 
                 }
-                // [REMOVIDO] Fechamento do Dashboard/Pacientes
                 if (event.target == modalHistoricoContainer) modalHistoricoContainer.style.display = 'none';
                 if (event.target == modalNovoAgendamento) {
                     modalNovoAgendamento.style.display = 'none';
