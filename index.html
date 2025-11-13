@@ -1008,28 +1008,434 @@
             };
 
             // --- LÓGICA DA API DE VOZ (EVOLUÇÃO) ---
-            // ... (código da voz de evolução, sem mudanças) ...
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            let recognition;
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.lang = 'pt-BR';
+                recognition.interimResults = true;
+                recognition.continuous = true;
+                let finalTranscript = '';
+                recognition.onstart = () => {
+                    finalTranscript = textoEvolucao.value;
+                    statusGravacao.textContent = 'Ouvindo... Fale agora.';
+                    btnGravar.textContent = 'Parar ⏹️';
+                    btnGravar.style.backgroundColor = '#6c757d';
+                };
+                recognition.onend = () => {
+                    statusGravacao.textContent = 'Gravação parada.';
+                    btnGravar.textContent = 'Gravar 🎤';
+                    btnGravar.style.backgroundColor = '#dc3545';
+                };
+                recognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += (finalTranscript.length > 0 ? ' ' : '') + transcript;
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+                    textoEvolucao.value = finalTranscript + (interimTranscript ? ' (' + interimTranscript + ')' : '');
+                };
+                recognition.onerror = (event) => { statusGravacao.textContent = 'Erro na gravação: ' + event.error; };
+            } else {
+                statusGravacao.textContent = 'Seu navegador não suporta a API de Voz.';
+                btnGravar.disabled = true;
+            }
+            btnGravar.onclick = () => {
+                if (btnGravar.textContent.includes('Gravar')) {
+                    recognition.start();
+                } else {
+                    recognition.stop();
+                }
+            };
             
             // --- LÓGICA DO MODAL DE CADASTRO DE PACIENTE (CRIAR E EDITAR) ---
-            // ... (código de cadastro de paciente, sem mudanças) ...
+            btnAbrirModalPaciente.onclick = () => {
+                formNovoPaciente.reset();
+                pacienteIdEmEdicao = null; 
+                modalTituloPaciente.textContent = 'Cadastrar Novo Paciente'; 
+                modalPacienteContainer.style.display = 'flex';
+            };
+            modalPacienteClose.onclick = () => {
+                modalPacienteContainer.style.display = 'none';
+                pacienteIdEmEdicao = null; 
+            }
+            
+            formNovoPaciente.onsubmit = async (event) => {
+                event.preventDefault(); 
+                
+                let dataNasc = document.getElementById('paciente-nasc').value;
+                let sexo = document.getElementById('paciente-sexo').value;
+
+                const dadosPaciente = {
+                    nome: document.getElementById('paciente-nome').value,
+                    telefone: document.getElementById('paciente-telefone').value,
+                    data_nascimento: dataNasc ? dataNasc : '1900-01-01', 
+                    sexo: sexo ? sexo : 'Outro', 
+                    diagnostico_medico: document.getElementById('paciente-diag').value
+                };
+
+                if (!dadosPaciente.nome) {
+                    alert('O campo Nome Completo é obrigatório.');
+                    return;
+                }
+
+                let method = 'POST';
+                let url = `${API_URL}/pacientes`;
+                
+                if (pacienteIdEmEdicao) {
+                    method = 'PATCH'; 
+                    url = `${API_URL}/pacientes/${pacienteIdEmEdicao}`;
+                }
+                
+                try {
+                    const response = await fetch(url, {
+                        method: method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(dadosPaciente)
+                    });
+
+                    if (response.ok) {
+                        const pacienteAtualizado = await response.json();
+                        
+                        if (pacienteIdEmEdicao) {
+                            alert(`Paciente "${pacienteAtualizado.nome}" atualizado com sucesso!`);
+                            const index = listaDePacientesCache.findIndex(p => p.id === pacienteIdEmEdicao);
+                            if (index !== -1) {
+                                listaDePacientesCache[index] = pacienteAtualizado;
+                            }
+                        } else {
+                            alert(`Paciente "${pacienteAtualizado.nome}" cadastrado com sucesso! \nNovo ID: ${pacienteAtualizado.id}`);
+                            listaDePacientesCache.push(pacienteAtualizado);
+                        }
+                        
+                        formNovoPaciente.reset();
+                        modalPacienteContainer.style.display = 'none';
+                        pacienteIdEmEdicao = null; 
+                        
+                        modalListaPacientesContainer.style.display = 'none'; 
+                    } else {
+                        const error = await response.json();
+                        console.error('Erro do backend (form):', error);
+                        alert(`Erro ao salvar: ${JSON.stringify(error.detail)}`);
+                    }
+                } catch (error) {
+                    console.error('Erro de rede:', error);
+                    alert('Erro ao conectar com a API.');
+                }
+            };
 
             // --- Lógica do Modal de NOVO AGENDAMENTO (clique na agenda) ---
-            // ... (código do modal de novo agendamento, sem mudanças) ...
+            modalNovoAgendamentoClose.onclick = () => {
+                modalNovoAgendamento.style.display = 'none';
+                currentSelectionInfo = null; 
+            }
+            
+            formNovoAgendamento.onsubmit = async (event) => {
+                event.preventDefault();
+                
+                const nomePaciente = inputPaciente.value;
+                
+                if (!nomePaciente) {
+                    alert('Por favor, digite o nome do paciente.');
+                    return;
+                }
+
+                const pacienteEncontrado = listaDePacientesCache.find(
+                    p => p.nome.toLowerCase() === nomePaciente.toLowerCase().trim()
+                );
+
+                if (!pacienteEncontrado) {
+                    alert('Paciente não encontrado. Por favor, selecione um nome válido da lista ou cadastre o paciente primeiro.');
+                    return;
+                }
+                
+                const pacienteId = pacienteEncontrado.id; 
+                
+                if (!currentSelectionInfo) {
+                    alert('Erro: Nenhuma informação de horário encontrada. Tente clicar novamente.');
+                    return;
+                }
+
+                const novoAgendamento = {
+                    paciente_id: pacienteId, 
+                    data_hora_inicio: formatLocalDate(currentSelectionInfo.start),
+                    data_hora_fim: formatLocalDate(currentSelectionInfo.end)
+                };
+
+                try {
+                    const response = await fetch(`${API_URL}/agendamentos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(novoAgendamento)
+                    });
+                    if (response.ok) {
+                        alert('Agendamento criado com sucesso!');
+                        calendar.refetchEvents();
+                        modalNovoAgendamento.style.display = 'none'; 
+                        currentSelectionInfo = null; 
+                    } else {
+                        const error = await response.json();
+                        alert(`Erro ao agendar: ${JSON.stringify(error.detail)}`);
+                    }
+                } catch (error) { 
+                    console.error('Erro de rede:', error); 
+                    alert('Erro de conexão ao tentar agendar.');
+                }
+            }
 
             // --- Lógica do Modal de AGENDAMENTO MANUAL (botão) ---
-            // ... (código do agendamento manual, sem mudanças) ...
+            btnAbrirModalAgendamento.onclick = () => {
+                formAgendamentoManual.reset(); 
+                
+                pacienteDataListManual.innerHTML = ''; 
+                listaDePacientesCache.sort((a, b) => a.nome.localeCompare(b.nome)); 
+                listaDePacientesCache.forEach(paciente => {
+                    const option = document.createElement('option');
+                    option.value = paciente.nome; 
+                    pacienteDataListManual.appendChild(option);
+                });
+
+                modalAgendamentoManualContainer.style.display = 'flex';
+                inputPacienteManual.focus();
+            };
+            
+            modalAgendamentoManualClose.onclick = () => {
+                modalAgendamentoManualContainer.style.display = 'none';
+            };
+
+            formAgendamentoManual.onsubmit = async (event) => {
+                event.preventDefault();
+
+                const nomePaciente = document.getElementById('input-paciente-manual').value;
+                const dataStr = document.getElementById('input-data-manual').value;
+                const horaStr = document.getElementById('input-hora-manual').value;
+
+                if (!nomePaciente || !dataStr || !horaStr) {
+                    alert("Por favor, preencha todos os campos.");
+                    return;
+                }
+
+                const pacienteEncontrado = listaDePacientesCache.find(
+                    p => p.nome.toLowerCase() === nomePaciente.toLowerCase().trim()
+                );
+
+                if (!pacienteEncontrado) {
+                    alert('Paciente não encontrado. Por favor, selecione um nome válido da lista ou cadastre o paciente primeiro.');
+                    return;
+                }
+
+                const dataInicio = new Date(`${dataStr}T${horaStr}`);
+                const dataFim = new Date(dataInicio.getTime() + 55 * 60000); 
+
+                const novoAgendamento = {
+                    paciente_id: pacienteEncontrado.id, 
+                    data_hora_inicio: formatLocalDate(dataInicio),
+                    data_hora_fim: formatLocalDate(dataFim)
+                };
+
+                try {
+                    const response = await fetch(`${API_URL}/agendamentos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(novoAgendamento)
+                    });
+                    if (response.ok) {
+                        alert('Agendamento (manual) criado com sucesso!');
+                        calendar.refetchEvents();
+                        modalAgendamentoManualContainer.style.display = 'none'; 
+                    } else {
+                        const error = await response.json();
+                        alert(`Erro ao agendar: ${JSON.stringify(error.detail)}`);
+                    }
+                } catch (error) { 
+                    console.error('Erro de rede:', error); 
+                    alert('Erro de conexão ao tentar agendar.');
+                }
+            };
+
 
             // --- LÓGICA DO MODAL DASHBOARD ---
-            // ... (código do dashboard, sem mudanças) ...
+            btnAbrirDashboard.onclick = () => {
+                dashboardResultados.innerHTML = "";
+                modalDashboardContainer.style.display = 'flex';
+            };
+            modalDashboardClose.onclick = () => modalDashboardContainer.style.display = 'none';
+            btnBuscarDashboard.onclick = async () => {
+                const ano = selectAno.value;
+                const mes = selectMes.value;
+                loadingDashboard.style.display = 'block';
+                dashboardResultados.innerHTML = "";
+                try {
+                    const response = await fetch(`${API_URL}/dashboard/sessoes-por-mes?ano=${ano}&mes=${mes}`);
+                    if (!response.ok) { throw new Error('Erro ao buscar dados.'); }
+                    const dados = await response.json();
+                    let tabelaHTML = '<table class="modal-table"><tr><th>Paciente</th><th>Total de Sessões</th></tr>';
+                    if (dados.length === 0) {
+                        tabelaHTML = "<p>Nenhuma sessão realizada encontrada para este período.</p>";
+                    } else {
+                        dados.forEach(item => {
+                            tabelaHTML += `<tr><td>${item.nome_paciente}</td><td>${item.total_sessoes}</td></tr>`;
+                        });
+                        tabelaHTML += "</table>";
+                    }
+                    dashboardResultados.innerHTML = tabelaHTML;
+                } catch (error) {
+                    console.error('Erro no dashboard:', error);
+                    dashboardResultados.innerHTML = "<p style='color: red;'>Erro ao carregar dados.</p>";
+                } finally {
+                    loadingDashboard.style.display = 'none';
+                }
+            };
 
             // --- LÓGICA DO MODAL LISTA PACIENTES (COM BOTÕES DE AÇÃO) ---
-            // ... (código da lista de pacientes, sem mudanças) ...
+            btnAbrirListaPacientes.onclick = () => {
+                listaPacientesTbody.innerHTML = ""; 
+                listaDePacientesCache.sort((a, b) => a.nome.localeCompare(b.nome));
+
+                if (listaDePacientesCache.length === 0) {
+                    listaPacientesTbody.innerHTML = "<tr><td colspan='4'>Nenhum paciente cadastrado.</td></tr>";
+                } else {
+                    listaDePacientesCache.forEach(paciente => {
+                        const tr = document.createElement('tr');
+                        
+                        const tdId = document.createElement('td');
+                        tdId.textContent = paciente.id;
+                        const tdNome = document.createElement('td');
+                        tdNome.textContent = paciente.nome;
+                        const tdTel = document.createElement('td');
+                        tdTel.textContent = paciente.telefone || 'N/A';
+                        
+                        [tdId, tdNome, tdTel].forEach(td => {
+                            td.onclick = () => abrirHistoricoPaciente(paciente.id, paciente.nome);
+                            td.style.cursor = 'pointer'; 
+                        });
+
+                        const tdAcoes = document.createElement('td');
+                        
+                        const btnEditar = document.createElement('button');
+                        btnEditar.textContent = '✏️';
+                        btnEditar.className = 'btn-acao btn-acao-edit';
+                        btnEditar.onclick = (e) => {
+                            e.stopPropagation(); 
+                            handleEditarPaciente(paciente);
+                        };
+
+                        const btnExcluir = document.createElement('button');
+                        btnExcluir.textContent = '🗑️';
+                        btnExcluir.className = 'btn-acao btn-acao-delete';
+                        btnExcluir.onclick = (e) => {
+                            e.stopPropagation(); 
+                            handleExcluirPaciente(paciente.id, paciente.nome);
+                        };
+
+                        tdAcoes.appendChild(btnEditar);
+                        tdAcoes.appendChild(btnExcluir);
+                        
+                        tr.appendChild(tdId);
+                        tr.appendChild(tdNome);
+                        tr.appendChild(tdTel);
+                        tr.appendChild(tdAcoes); 
+                        
+                        listaPacientesTbody.appendChild(tr);
+                    });
+                }
+                modalListaPacientesContainer.style.display = 'flex';
+            };
+            modalListaPacientesClose.onclick = () => modalListaPacientesContainer.style.display = 'none';
 
             // --- FUNÇÕES DE AÇÃO (EDITAR E EXCLUIR) ---
-            // ... (código de editar e excluir, sem mudanças) ...
+
+            function handleEditarPaciente(paciente) {
+                modalListaPacientesContainer.style.display = 'none';
+                pacienteIdEmEdicao = paciente.id;
+                
+                modalTituloPaciente.textContent = `Editando Paciente: ${paciente.nome}`;
+                document.getElementById('paciente-nome').value = paciente.nome;
+                document.getElementById('paciente-telefone').value = paciente.telefone || '';
+                
+                if (paciente.data_nascimento && paciente.data_nascimento.includes('T')) {
+                     document.getElementById('paciente-nasc').value = paciente.data_nascimento.split('T')[0];
+                } else if (paciente.data_nascimento) {
+                    document.getElementById('paciente-nasc').value = paciente.data_nascimento;
+                } else {
+                    document.getElementById('paciente-nasc').value = '';
+                }
+
+                document.getElementById('paciente-sexo').value = paciente.sexo || '';
+                document.getElementById('paciente-diag').value = paciente.diagnostico_medico || '';
+                
+                modalPacienteContainer.style.display = 'flex';
+            }
+
+            async function handleExcluirPaciente(pacienteId, pacienteNome) {
+                if (!confirm(`Tem certeza que deseja excluir "${pacienteNome}"?\n\nATENÇÃO: Isso é permanente e não pode ser desfeito.`)) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${API_URL}/pacientes/${pacienteId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (response.ok) {
+                        alert(`Paciente "${pacienteNome}" excluído com sucesso.`);
+                        listaDePacientesCache = listaDePacientesCache.filter(p => p.id !== pacienteId);
+                        modalListaPacientesContainer.style.display = 'none';
+                        calendar.refetchEvents(); 
+                    } else {
+                        const error = await response.json();
+                        console.error('Erro ao excluir:', error);
+                        alert(`Erro ao excluir paciente: ${JSON.stringify(error.detail)}\n\n(Lembre-se: você não pode excluir um paciente que tenha agendamentos. Exclua-os permanentemente primeiro).`);
+                    }
+                } catch (error) {
+                    console.error('Erro de rede ao excluir:', error);
+                    alert('Erro ao conectar com a API.');
+                }
+            }
+
 
             // --- LÓGICA DO MODAL HISTÓRICO DE EVOLUÇÕES ---
-            // ... (código do histórico, sem mudanças) ...
+            modalHistoricoClose.onclick = () => modalHistoricoContainer.style.display = 'none';
+            async function abrirHistoricoPaciente(pacienteId, pacienteNome) {
+                historicoNomePaciente.textContent = pacienteNome;
+                loadingHistorico.style.display = 'block';
+                historicoEvolucoesContent.innerHTML = "";
+                modalHistoricoContainer.style.display = 'flex';
+                
+                try {
+                    const response = await fetch(`${API_URL}/pacientes/${pacienteId}/evolucoes`);
+                    if (!response.ok) {
+                        throw new Error('Erro ao buscar histórico.');
+                    }
+                    const evolucoes = await response.json();
+                    
+                    if (evolucoes.length === 0) {
+                        historicoEvolucoesContent.innerHTML = "<p>Nenhuma evolução registrada para este paciente.</p>";
+                    } else {
+                        evolucoes.sort((a, b) => new Date(b.data_criacao) - new Date(a.data_criacao));
+
+                        evolucoes.forEach(evo => {
+                            const data = new Date(evo.data_criacao).toLocaleString('pt-BR');
+                            const itemHTML = `
+                                <div class="evolucao-item">
+                                    <div class="evolucao-data">${data}</div>
+                                    <div class="evolucao-texto">${evo.texto_evolucao}</div>
+                                </div>
+                            `;
+                            historicoEvolucoesContent.innerHTML += itemHTML;
+                        });
+                    }
+                } catch (error) {
+                    console.error('Erro ao buscar histórico:', error);
+                    historicoEvolucoesContent.innerHTML = "<p style='color: red;'>Erro ao carregar histórico.</p>";
+                } finally {
+                    loadingHistorico.style.display = 'none';
+                }
+            }
 
             // (Fechar Modais ao clicar fora)
             window.onclick = (event) => {
