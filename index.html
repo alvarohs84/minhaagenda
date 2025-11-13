@@ -144,20 +144,20 @@
             margin-right: 10px;
         }
 
-        /* [NOVO] Estilos para o grupo de dias da semana */
-        #dias-semana-container {
+        /* [MODIFICADO] Mudei de ID para Classe para reusar o estilo */
+        .dias-semana-container {
             display: flex;
-            flex-wrap: wrap; /* Permite quebrar a linha no celular */
-            gap: 5px 15px; /* Espaçamento vertical e horizontal */
+            flex-wrap: wrap; 
+            gap: 5px 15px; 
             padding: 10px;
             background-color: #f8f9fa;
             border-radius: 4px;
             margin-top: 5px;
         }
-        #dias-semana-container .checkbox-label {
+        .dias-semana-container .checkbox-label {
             font-weight: normal;
             font-size: 0.9em;
-            margin-top: 0; /* Reseta a margem */
+            margin-top: 0; 
         }
 
 
@@ -373,6 +373,18 @@
                 <input type="text" id="input-paciente" list="paciente-list" placeholder="Digite ou selecione um paciente..." required>
                 <datalist id="paciente-list">
                     </datalist>
+
+                <label style="margin-top: 20px;">Repetir semanalmente em:</label>
+                <div class="dias-semana-container"> <label class="checkbox-label"><input type="checkbox" name="dia-semana-clique" value="SU"> Dom</label>
+                    <label class="checkbox-label"><input type="checkbox" name="dia-semana-clique" value="MO"> Seg</label>
+                    <label class="checkbox-label"><input type="checkbox" name="dia-semana-clique" value="TU"> Ter</label>
+                    <label class="checkbox-label"><input type="checkbox" name="dia-semana-clique" value="WE"> Qua</label>
+                    <label class="checkbox-label"><input type="checkbox" name="dia-semana-clique" value="TH"> Qui</label>
+                    <label class="checkbox-label"><input type="checkbox" name="dia-semana-clique" value="FR"> Sex</label>
+                    <label class="checkbox-label"><input type="checkbox" name="dia-semana-clique" value="SA"> Sáb</label>
+                </div>
+                <small>Deixe todos desmarcados para não repetir.</small>
+                
                 <button type="submit" id="btn-salvar-agendamento">Agendar</button>
             </form>
         </div>
@@ -396,7 +408,7 @@
                 <input type="time" id="input-hora-manual" required>
 
                 <label style="margin-top: 20px;">Repetir semanalmente em:</label>
-                <div id="dias-semana-container">
+                <div class="dias-semana-container"> 
                     <label class="checkbox-label"><input type="checkbox" name="dia-semana" value="SU"> Dom</label>
                     <label class="checkbox-label"><input type="checkbox" name="dia-semana" value="MO"> Seg</label>
                     <label class="checkbox-label"><input type="checkbox" name="dia-semana" value="TU"> Ter</label>
@@ -514,7 +526,7 @@
             const formAgendamentoManual = document.getElementById('form-agendamento-manual');
             const inputPacienteManual = document.getElementById('input-paciente-manual');
             const pacienteDataListManual = document.getElementById('paciente-list-manual');
-            const inputDataManual = document.getElementById('input-data-manual'); // [NOVO]
+            const inputDataManual = document.getElementById('input-data-manual'); 
 
             // --- Seletores (Modal Dashboard) ---
             const btnAbrirDashboard = document.getElementById('btn-abrir-dashboard');
@@ -760,13 +772,12 @@
                 return [hora, minuto];
             }
 
-            // [FUNÇÃO MODIFICADA] para aceitar 'rrule'
             async function salvarAgendamento(pacienteId, dataInicio, dataFim, rrule = null) {
                 const novoAgendamento = {
                     paciente_id: pacienteId, 
                     data_hora_inicio: formatLocalDate(dataInicio),
                     data_hora_fim: formatLocalDate(dataFim),
-                    rrule: rrule // Envia a regra de repetição
+                    rrule: rrule 
                 };
 
                 try {
@@ -826,7 +837,6 @@
                 eventClick: handleEventClick,
                 eventDrop: handleEventDrop, 
                 
-                // [MODIFICADO] Envia 'start' e 'end' para a API
                 events: function(fetchInfo, successCallback, failureCallback) {
                     const start = fetchInfo.start.toISOString();
                     const end = fetchInfo.end.toISOString();
@@ -916,6 +926,14 @@
                 const fim = dataFim.toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' }); 
                 const dia = dataInicio.toLocaleString('pt-BR', { dateStyle: 'short' });
                 novoAgendamentoHorario.textContent = `${dia} - ${inicio} às ${fim}`;
+                
+                // [NOVO] Auto-checka o dia da semana
+                const diasRRule = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+                const diaValor = diasRRule[dataInicio.getDay()];
+                
+                document.querySelectorAll('input[name="dia-semana-clique"]').forEach(cb => {
+                    cb.checked = (cb.value === diaValor); // Marca apenas o dia clicado
+                });
 
                 modalNovoAgendamento.style.display = 'flex';
                 inputPaciente.focus(); 
@@ -1177,8 +1195,19 @@
                     alert('Erro: Nenhuma informação de horário encontrada. Tente clicar novamente.');
                     return;
                 }
+                
+                // [NOVO] Lê os checkboxes de repetição
+                const diasSelecionados = [];
+                document.querySelectorAll('input[name="dia-semana-clique"]:checked').forEach(cb => {
+                    diasSelecionados.push(cb.value);
+                });
 
-                const sucesso = await salvarAgendamento(pacienteId, currentSelectionInfo.start, currentSelectionInfo.end, null);
+                let rruleStr = null;
+                if (diasSelecionados.length > 0) {
+                    rruleStr = `FREQ=WEEKLY;BYDAY=${diasSelecionados.join(',')}`;
+                }
+
+                const sucesso = await salvarAgendamento(pacienteId, currentSelectionInfo.start, currentSelectionInfo.end, rruleStr);
                 
                 if (sucesso) {
                     modalNovoAgendamento.style.display = 'none'; 
@@ -1198,7 +1227,6 @@
                     pacienteDataListManual.appendChild(option);
                 });
                 
-                // [NOVO] Limpa os checkboxes de repetição
                 document.querySelectorAll('input[name="dia-semana"]').forEach(cb => cb.checked = false);
 
                 modalAgendamentoManualContainer.style.display = 'flex';
@@ -1209,14 +1237,14 @@
                 modalAgendamentoManualContainer.style.display = 'none';
             };
 
-            // [NOVO] Auto-checka o dia da semana quando a data muda
+            // [MODIFICADO] Auto-checka o dia da semana quando a data muda
             inputDataManual.onchange = () => {
                 const dataStr = inputDataManual.value;
                 if (dataStr) {
                     document.querySelectorAll('input[name="dia-semana"]').forEach(cb => cb.checked = false);
                     const dataObj = new Date(dataStr + 'T00:00:00'); 
                     const diasRRule = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
-                    const diaDaSemana = diasRRule[dataObj.getDay()]; 
+                    const diaDaSemana = diasRRule[dataObj.getUTCDay()]; // Usa UTC para evitar problemas de fuso
                     
                     const checkboxAlvo = document.querySelector(`input[name="dia-semana"][value="${diaDaSemana}"]`);
                     if (checkboxAlvo) {
@@ -1233,7 +1261,6 @@
                 const dataStr = document.getElementById('input-data-manual').value;
                 const horaStr = document.getElementById('input-hora-manual').value;
                 
-                // Pega os dias da semana marcados
                 const diasSelecionados = [];
                 document.querySelectorAll('input[name="dia-semana"]:checked').forEach(cb => {
                     diasSelecionados.push(cb.value);
@@ -1256,7 +1283,6 @@
                 const dataInicio = new Date(`${dataStr}T${horaStr}`);
                 const dataFim = new Date(dataInicio.getTime() + 55 * 60000); 
 
-                // Monta a regra de repetição (rrule)
                 let rruleStr = null;
                 if (diasSelecionados.length > 0) {
                     rruleStr = `FREQ=WEEKLY;BYDAY=${diasSelecionados.join(',')}`;
