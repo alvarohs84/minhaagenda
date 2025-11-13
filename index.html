@@ -682,7 +682,7 @@
             const historicoNomePaciente = document.getElementById('historico-nome-paciente');
             const loadingHistorico = document.getElementById('loading-historico');
             const historicoEvolucoesContent = document.getElementById('historico-evolucoes-content');
-            const prontuarioAvaliacao = document.getElementById('prontuario-avaliacao'); // [NOVO]
+            const prontuarioAvaliacao = document.getElementById('prontuario-avaliacao');
 
             // --- Seletores de Voz ---
             const btnCadastroRapidoVoz = document.getElementById('btn-cadastro-rapido-voz');
@@ -698,16 +698,7 @@
             const allViews = [viewAgenda, viewPacientes, viewDashboard];
             const allNavLinks = [navAgenda, navPacientes, navDashboard];
 
-            // --- Função Ajudante para Fuso Horário ---
-            function formatLocalDate(date) {
-                const y = date.getFullYear();
-                const m = String(date.getMonth() + 1).padStart(2, '0');
-                const d = String(date.getDate()).padStart(2, '0');
-                const h = String(date.getHours()).padStart(2, '0');
-                const min = String(date.getMinutes()).padStart(2, '0');
-                const s = String(date.getSeconds()).padStart(2, '0');
-                return `${y}-${m}-${d}T${h}:${min}:${s}`;
-            }
+            // --- [REMOVIDO] Função 'formatLocalDate' (causadora do bug) ---
 
             // --- Lógica da API de Voz para CADASTRO RÁPIDO ---
             const SpeechRecognitionCadastro = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -918,8 +909,8 @@
             async function salvarAgendamento(pacienteId, dataInicio, dataFim, rrule = null) {
                 const novoAgendamento = {
                     paciente_id: pacienteId, 
-                    data_hora_inicio: formatLocalDate(dataInicio),
-                    data_hora_fim: formatLocalDate(dataFim),
+                    data_hora_inicio: dataInicio.toISOString(), // [CORRIGIDO] Usa .toISOString()
+                    data_hora_fim: dataFim.toISOString(),     // [CORRIGIDO] Usa .toISOString()
                     rrule: rrule 
                 };
 
@@ -1146,9 +1137,10 @@
                     return;
                 }
                 
+                // [CORRIGIDO] Usa .toISOString() para enviar o fuso horário correto
                 const updateData = {
-                    data_hora_inicio: formatLocalDate(event.start),
-                    data_hora_fim: formatLocalDate(dataFim)
+                    data_hora_inicio: event.start.toISOString(),
+                    data_hora_fim: dataFim.toISOString()
                 };
 
                 try {
@@ -1280,7 +1272,7 @@
                     data_nascimento: dataNasc ? dataNasc : '1900-01-01', 
                     sexo: sexo ? sexo : 'Outro', 
                     diagnostico_medico: document.getElementById('paciente-diag').value,
-                    avaliacao: document.getElementById('paciente-avaliacao').value // [NOVO]
+                    avaliacao: document.getElementById('paciente-avaliacao').value 
                 };
 
                 if (!dadosPaciente.nome) {
@@ -1418,7 +1410,7 @@
                     document.querySelectorAll('input[name="dia-semana"]').forEach(cb => cb.checked = false);
                     const dataObj = new Date(dataStr + 'T00:00:00'); 
                     const diasRRule = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
-                    const diaDaSemana = diasRRule[dataObj.getUTCDay()]; // Correto usar UTC para datas
+                    const diaDaSemana = diasRRule[dataObj.getUTCDay()]; 
                     
                     const checkboxAlvo = document.querySelector(`#form-agendamento-manual input[name="dia-semana"][value="${diaDaSemana}"]`);
                     if (checkboxAlvo) {
@@ -1456,7 +1448,6 @@
                 const dataInicio = new Date(`${dataStr}T${horaStr}`);
                 const dataFim = new Date(dataInicio.getTime() + 55 * 60000); 
 
-                // [CORREÇÃO LÓGICA] Garante que o dia da data de início esteja na regra
                 const diasRRule = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
                 const diaDaSemanaInicio = diasRRule[dataInicio.getDay()]; 
                 if (diasSelecionados.length > 0 && !diasSelecionados.includes(diaDaSemanaInicio)) {
@@ -1522,8 +1513,6 @@
                         const tdTel = document.createElement('td');
                         tdTel.textContent = paciente.telefone || 'N/A';
                         
-                        // [MODIFICADO] Clique na linha não faz mais nada
-                        
                         const tdAcoes = document.createElement('td');
                         
                         const btnEditar = document.createElement('button');
@@ -1550,7 +1539,7 @@
                         btnProntuario.className = 'btn-acao btn-acao-prontuario';
                         btnProntuario.onclick = (e) => {
                             e.stopPropagation();
-                            abrirHistoricoPaciente(paciente); // [MODIFICADO] Passa o objeto paciente inteiro
+                            abrirHistoricoPaciente(paciente); 
                         };
 
                         tdAcoes.appendChild(btnEditar);
@@ -1621,13 +1610,11 @@
             // --- LÓGICA DO MODAL HISTÓRICO DE EVOLUÇÕES ---
             modalHistoricoClose.onclick = () => modalHistoricoContainer.style.display = 'none';
             
-            // [MODIFICADO] para mostrar a Avaliação
             async function abrirHistoricoPaciente(paciente) {
                 historicoNomePaciente.textContent = paciente.nome;
                 loadingHistorico.style.display = 'block';
                 historicoEvolucoesContent.innerHTML = "";
                 
-                // Mostra a avaliação
                 prontuarioAvaliacao.textContent = paciente.avaliacao || "(Nenhuma avaliação registrada)";
                 
                 modalHistoricoContainer.style.display = 'flex';
