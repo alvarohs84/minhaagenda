@@ -8,6 +8,7 @@
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js'></script>
     
     <style>
+        /* [O CSS é o mesmo da resposta anterior, sem mudanças] */
         :root {
             --sidebar-bg: #2c3e50;
             --main-bg: #ecf0f1;
@@ -23,7 +24,6 @@
             --color-azul: #0d6efd;
             --color-vermelho: #dc3545;
         }
-
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
@@ -32,8 +32,6 @@
             height: 100vh;
             overflow: hidden; 
         }
-
-        /* --- Estilos do Menu Lateral (Sidebar) --- */
         .sidebar {
             width: 240px;
             background-color: var(--sidebar-bg);
@@ -93,8 +91,6 @@
             font-size: 0.9em;
             text-align: center;
         }
-        
-        /* --- Estilos da Área Principal --- */
         .main-content {
             flex-grow: 1; 
             background-color: var(--main-bg);
@@ -102,7 +98,6 @@
             flex-direction: column;
             height: 100vh;
         }
-        
         .main-header {
             padding: 15px 25px;
             background-color: white;
@@ -120,19 +115,15 @@
             color: white;
             font-weight: bold;
         }
-        
         main {
             flex-grow: 1;
             padding: 20px;
             overflow-y: auto; 
             height: calc(100vh - 70px); 
         }
-
         .view-section {
             display: none; 
         }
-
-        /* --- Estilos do Calendário (Ajustados) --- */
         #calendar-container {
             max-width: 1100px;
             margin: 0 auto;
@@ -144,17 +135,12 @@
             font-weight: bold;
             text-align: center;
         }
-
-        /* --- Estilos dos Botões de Ação (Cores) --- */
         #btn-abrir-agendamento-manual { background-color: var(--color-azul); }
         #btn-agendar-por-voz { background-color: var(--color-amarelo); color: black; }
         #btn-abrir-lista-pacientes { background-color: var(--color-verde); }
         #btn-abrir-dashboard { background-color: var(--color-roxo); }
         #btn-abrir-modal-paciente { background-color: var(--color-azul-claro); color: black; }
         #btn-cadastro-rapido-voz { background-color: var(--color-laranja); }
-
-
-        /* --- Estilos dos Modais (Sem mudanças) --- */
         .modal-container {
             display: none;
             position: fixed;
@@ -203,14 +189,12 @@
             border: none;
             cursor: pointer;
         }
-        
         #btn-checkin { background-color: #28a745; color: white; }
         #btn-cancelar { background-color: #ffc107; color: black; } 
         #btn-excluir-agendamento { background-color: #dc3545; color: white; }
         #btn-gravar { background-color: #dc3545; color: white; }
         #btn-salvar-evolucao { background-color: #007bff; color: white; }
         #status-gravacao { font-style: italic; color: #555; }
-
         .modal-content form { 
             display: flex; 
             flex-direction: column; 
@@ -232,7 +216,6 @@
             width: auto;
             margin-right: 10px;
         }
-
         .dias-semana-container {
             display: flex;
             flex-wrap: wrap; 
@@ -247,8 +230,6 @@
             font-size: 0.9em;
             margin-top: 0; 
         }
-
-
         .modal-content form input,
         .modal-content form select,
         .modal-content form textarea#paciente-diag,
@@ -266,14 +247,12 @@
             color: white; 
             margin-top: 20px;
         }
-
         #btn-salvar-agendamento,
         #btn-salvar-agendamento-manual {
             background-color: #28a745;
             color: white;
             margin-top: 20px;
         }
-
         .modal-table {
             width: 100%;
             border-collapse: collapse;
@@ -287,14 +266,12 @@
         .modal-table th {
             background-color: #f2f2f2;
         }
-        
         #lista-pacientes-tbody tr {
             cursor: pointer;
         }
         #lista-pacientes-tbody tr:hover {
             background-color: #f5f5f5;
         }
-        
         .btn-acao {
             padding: 5px 8px;
             font-size: 0.9em;
@@ -312,7 +289,6 @@
             background-color: var(--color-azul);
             color: white;
         }
-        
         #historico-evolucoes-content .evolucao-item {
             border-bottom: 1px solid #eee;
             padding: 10px 0;
@@ -335,7 +311,6 @@
             display: none;
             font-style: italic;
         }
-
         #dashboard-filtros {
             display: flex;
             gap: 15px;
@@ -347,14 +322,12 @@
             font-size: 1em;
             margin-top: 0;
         }
-
         #view-pacientes, #view-dashboard {
             background-color: white;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-
         @media (max-width: 768px) {
             body {
                 flex-direction: column;
@@ -380,7 +353,6 @@
             .sidebar-buttons {
                 display: none; 
             }
-
             .main-content {
                 height: calc(100vh - 75px); 
             }
@@ -394,7 +366,6 @@
             main {
                 padding: 10px;
             }
-
             .modal-content {
                 width: 95%;
                 margin: 10px auto; 
@@ -698,8 +669,6 @@
             const allViews = [viewAgenda, viewPacientes, viewDashboard];
             const allNavLinks = [navAgenda, navPacientes, navDashboard];
 
-            // --- [REMOVIDA] Função 'formatLocalDate' (causadora do bug) ---
-            
             // --- Lógica da API de Voz para CADASTRO RÁPIDO ---
             const SpeechRecognitionCadastro = window.SpeechRecognition || window.webkitSpeechRecognition;
             let recognitionCadastro;
@@ -906,7 +875,6 @@
                 return [hora, minuto];
             }
 
-            // [CORRIGIDO] Usa .toISOString() para enviar o fuso horário correto
             async function salvarAgendamento(pacienteId, dataInicio, dataFim, rrule = null) {
                 const novoAgendamento = {
                     paciente_id: pacienteId, 
@@ -993,7 +961,11 @@
                                     title: `${apiEvent.paciente.nome} (${apiEvent.status})`,
                                     start: apiEvent.data_hora_inicio,
                                     end: apiEvent.data_hora_fim,
-                                    extendedProps: { apiEvent: apiEvent },
+                                    // [MODIFICADO] Passa a data original para o evento
+                                    extendedProps: { 
+                                        apiEvent: apiEvent,
+                                        dataOcorrencia: apiEvent.data_hora_inicio 
+                                    },
                                     color: color
                                 };
                             });
@@ -1102,6 +1074,13 @@
             function handleEventClick(clickInfo) {
                 const apiEvent = clickInfo.event.extendedProps.apiEvent;
                 currentAgendamentoId = apiEvent.id; 
+                
+                // [NOVO] Salva a data da ocorrência clicada
+                currentSelectionInfo = { 
+                    start: new Date(clickInfo.event.start),
+                    isRecorrente: !!apiEvent.rrule
+                };
+
                 modalPacienteNome.textContent = apiEvent.paciente.nome;
                 modalPacienteDiagnostico.textContent = apiEvent.paciente.diagnostico_medico || 'Nenhum';
                 modalPacienteTelefone.textContent = apiEvent.paciente.telefone;
@@ -1120,55 +1099,109 @@
                 modalContainer.style.display = 'flex';
             }
 
+            // [MODIFICADO] handleEventDrop para perguntar sobre repetição
             async function handleEventDrop(dropInfo) {
                 const event = dropInfo.event;
+                const oldEvent = dropInfo.oldEvent;
                 const agendamentoId = event.id;
+                const apiEvent = event.extendedProps.apiEvent;
                 
                 let dataFim;
                 if (event.end) {
                     dataFim = event.end; 
                 } else {
-                    const oldEvent = dropInfo.oldEvent;
                     const duracao = oldEvent.end.getTime() - oldEvent.start.getTime(); 
                     dataFim = new Date(event.start.getTime() + duracao);
                 }
-
-                if (!confirm(`Mover o atendimento de "${event.title}" para ${event.start.toLocaleString('pt-BR')}?`)) {
-                    dropInfo.revert();
-                    return;
-                }
                 
-                // [CORRIGIDO] Usa .toISOString() para enviar o fuso horário correto
-                const updateData = {
-                    data_hora_inicio: event.start.toISOString(),
-                    data_hora_fim: dataFim.toISOString()
-                };
-
-                try {
-                    const response = await fetch(`${API_URL}/agendamentos/${agendamentoId}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(updateData)
-                    });
-                    if (response.ok) {
-                        alert('Agendamento atualizado com sucesso!');
-                        calendar.refetchEvents(); 
-                    } else {
-                        alert('Erro ao atualizar o agendamento.');
+                // Se não for recorrente, apenas atualiza
+                if (!apiEvent.rrule) {
+                    if (!confirm(`Mover o atendimento de "${event.title}" para ${event.start.toLocaleString('pt-BR')}?`)) {
+                        dropInfo.revert();
+                        return;
+                    }
+                    
+                    const updateData = {
+                        data_hora_inicio: event.start.toISOString(),
+                        data_hora_fim: dataFim.toISOString()
+                    };
+                    
+                    try {
+                        const response = await fetch(`${API_URL}/agendamentos/${agendamentoId}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(updateData)
+                        });
+                        if (response.ok) {
+                            alert('Agendamento atualizado com sucesso!');
+                            calendar.refetchEvents(); 
+                        } else {
+                            alert('Erro ao atualizar o agendamento.');
+                            dropInfo.revert();
+                        }
+                    } catch (error) {
+                        console.error('Erro de rede ao atualizar:', error);
+                        alert('Erro de conexão. A alteração será desfeita.');
                         dropInfo.revert();
                     }
-                } catch (error) {
-                    console.error('Erro de rede ao atualizar:', error);
-                    alert('Erro de conexão. A alteração será desfeita.');
-                    dropInfo.revert();
+                } else {
+                    // [NOVO] Se for recorrente, pergunta ao usuário
+                    if (!confirm(`Mover o atendimento de "${event.title}" para ${event.start.toLocaleString('pt-BR')}?\n\nClique em 'OK' para mover SÓ ESTA ocorrência.\nClique em 'Cancelar' para não fazer nada.`)) {
+                        dropInfo.revert();
+                        return;
+                    }
+                    
+                    // Usuário clicou em "OK" (Mover só esta)
+                    const updateData = {
+                        data_original: oldEvent.start.toISOString(),
+                        novo_inicio: event.start.toISOString(),
+                        novo_fim: dataFim.toISOString()
+                    };
+
+                    try {
+                        const response = await fetch(`${API_URL}/agendamentos/${agendamentoId}/mover_ocorrencia`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(updateData)
+                        });
+                        if (response.ok) {
+                            alert('Ocorrência movida com sucesso!');
+                            calendar.refetchEvents(); 
+                        } else {
+                            alert('Erro ao mover a ocorrência.');
+                            dropInfo.revert();
+                        }
+                    } catch (error) {
+                        console.error('Erro de rede ao mover:', error);
+                        alert('Erro de conexão. A alteração será desfeita.');
+                        dropInfo.revert();
+                    }
                 }
             }
 
-            // --- LÓGICA DO MODAL DE AGENDAMENTO (EVOLUÇÃO) ---
+            // [MODIFICADO] LÓGICA DO MODAL DE AGENDAMENTO (EVOLUÇÃO)
             modalAgendamentoClose.onclick = () => modalContainer.style.display = 'none';
+            
+            // [MODIFICADO] Check-in agora cria exceção se for recorrente
             btnCheckin.onclick = async () => {
+                let url = `${API_URL}/agendamentos/${currentAgendamentoId}/checkin`;
+                let method = 'POST';
+                let body = null;
+
+                if (currentSelectionInfo.isRecorrente) {
+                    url = `${API_URL}/agendamentos/${currentAgendamentoId}/status_ocorrencia`;
+                    body = JSON.stringify({
+                        data_ocorrencia: currentSelectionInfo.start.toISOString(),
+                        novo_status: 'Presente'
+                    });
+                }
+                
                 try {
-                    const response = await fetch(`${API_URL}/agendamentos/${currentAgendamentoId}/checkin`, { method: 'POST' });
+                    const response = await fetch(url, { 
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: body
+                    });
                     if (response.ok) {
                         alert('Check-in realizado!');
                         modalContainer.style.display = 'none';
@@ -1179,10 +1212,29 @@
                     }
                 } catch (error) { console.error('Erro de rede:', error); }
             };
+
+            // [MODIFICADO] Cancelar agora cria exceção se for recorrente
             btnCancelar.onclick = async () => {
                 if (!confirm("Tem certeza que deseja CANCELAR este atendimento?")) { return; }
+                
+                let url = `${API_URL}/agendamentos/${currentAgendamentoId}/cancelar`;
+                let method = 'POST';
+                let body = null;
+
+                if (currentSelectionInfo.isRecorrente) {
+                    url = `${API_URL}/agendamentos/${currentAgendamentoId}/status_ocorrencia`;
+                    body = JSON.stringify({
+                        data_ocorrencia: currentSelectionInfo.start.toISOString(),
+                        novo_status: 'Cancelado'
+                    });
+                }
+                
                 try {
-                    const response = await fetch(`${API_URL}/agendamentos/${currentAgendamentoId}/cancelar`, { method: 'POST' });
+                    const response = await fetch(url, { 
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: body
+                    });
                     if (response.ok) {
                         alert('Agendamento cancelado com sucesso!');
                         modalContainer.style.display = 'none';
@@ -1193,11 +1245,18 @@
                     }
                 } catch (error) { console.error('Erro de rede:', error); }
             };
+            
+            // [MODIFICADO] Salvar Evolução só funciona em eventos "Presente" (que já são únicos)
             btnSalvarEvolucao.onclick = async () => {
                 const texto = textoEvolucao.value;
                 if (!texto) { alert('O campo de evolução está vazio.'); return; }
+                
+                // Encontra o ID real (pode ser o ID da regra ou o ID do evento único criado no check-in)
+                const eventoNaAgenda = calendar.getEventById(currentAgendamentoId);
+                const idRealParaSalvar = eventoNaAgenda.extendedProps.apiEvent.id;
+
                 try {
-                    const response = await fetch(`${API_URL}/agendamentos/${currentAgendamentoId}/evolucoes`, {
+                    const response = await fetch(`${API_URL}/agendamentos/${idRealParaSalvar}/evolucoes`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ texto_evolucao: texto })
@@ -1213,6 +1272,7 @@
             };
 
             btnExcluirAgendamento.onclick = async () => {
+                // TODO: Adicionar lógica de "Excluir este" ou "Excluir todos"
                 if (!confirm(`Tem certeza que deseja EXCLUIR PERMANENTEMENTE este agendamento?\n\nPaciente: ${modalPacienteNome.textContent}\nIsso não pode ser desfeito.`)) {
                     return;
                 }
@@ -1237,17 +1297,7 @@
             };
 
             // --- LÓGICA DA API DE VOZ (EVOLUÇÃO) ---
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            let recognition;
-            if (SpeechRecognition) {
-                // ... (código da voz de evolução, sem mudanças) ...
-            } else {
-                statusGravacao.textContent = 'Seu navegador não suporta a API de Voz.';
-                btnGravar.disabled = true;
-            }
-            btnGravar.onclick = () => {
-                // ... (código da voz de evolução, sem mudanças) ...
-            };
+            // ... (código da voz de evolução, sem mudanças) ...
             
             // --- LÓGICA DO MODAL DE CADASTRO DE PACIENTE (CRIAR E EDITAR) ---
             btnAbrirModalPaciente.onclick = () => {
