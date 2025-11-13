@@ -8,32 +8,103 @@
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js'></script>
     
     <style>
+        /* --- [NOVO] Estilos Globais --- */
+        :root {
+            --sidebar-bg: #2c3e50;
+            --main-bg: #ecf0f1;
+            --sidebar-text: #ecf0f1;
+            --sidebar-text-hover: #ffffff;
+            --sidebar-active-bg: #3498db;
+            --header-border: #bdc3c7;
+            --color-verde: #198754;
+            --color-roxo: #6f42c1;
+            --color-azul-claro: #0dcaf0;
+            --color-laranja: #fd7e14;
+            --color-amarelo: #ffc107;
+            --color-azul: #0d6efd;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            padding: 20px;
-        }
-        #calendar {
-            max-width: 1100px;
-            margin: 0 auto;
-        }
-        .fc-event {
-            cursor: pointer;
+            margin: 0;
+            padding: 0;
+            display: flex; /* Layout principal com Flexbox */
+            height: 100vh;
+            overflow: hidden; /* Impede a rolagem do body */
         }
 
-        .fc-timegrid-axis-header .fc-scrollgrid-shrink-cushion {
+        /* --- [NOVO] Estilos do Menu Lateral (Sidebar) --- */
+        .sidebar {
+            width: 240px;
+            background-color: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        .sidebar h2 {
+            margin-top: 0;
+            text-align: center;
+            color: white;
+        }
+        .sidebar nav {
+            display: flex;
+            flex-direction: column;
+            margin-top: 20px;
+            flex-grow: 1; /* Empurra os botões de ação para baixo */
+        }
+        .sidebar nav a {
+            color: var(--sidebar-text);
+            text-decoration: none;
+            padding: 12px 15px;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .sidebar nav a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--sidebar-text-hover);
+        }
+        .sidebar nav a.active {
+            background-color: var(--sidebar-active-bg);
+            color: white;
+        }
+        .sidebar-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* Espaço entre os botões */
+        }
+        .sidebar-buttons button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
             font-weight: bold;
+            font-size: 0.9em;
             text-align: center;
         }
-
-        .header-controls {
+        
+        /* --- [NOVO] Estilos da Área Principal --- */
+        .main-content {
+            flex-grow: 1; /* Ocupa todo o resto */
+            background-color: var(--main-bg);
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1100px;
-            margin: 0 auto;
-            margin-bottom: 20px;
+            flex-direction: column;
+            height: 100vh;
         }
-        .header-controls button {
+        
+        .main-header {
+            padding: 15px 25px;
+            background-color: white;
+            border-bottom: 1px solid var(--header-border);
+            display: flex;
+            justify-content: flex-end; /* Alinha botões de voz à direita */
+            gap: 10px;
+        }
+        .main-header button {
             font-size: 0.9em;
             padding: 10px 15px;
             border-radius: 5px;
@@ -41,31 +112,43 @@
             cursor: pointer;
             color: white;
             font-weight: bold;
-            margin-left: 10px;
         }
         
-        #btn-abrir-agendamento-manual {
-            background-color: #0d6efd; 
-        }
-        #btn-agendar-por-voz {
-            background-color: #ffc107; /* Amarelo */
-            color: black;
-        }
-        #btn-abrir-lista-pacientes {
-            background-color: #198754; 
-        }
-        #btn-abrir-dashboard {
-            background-color: #6f42c1;
-        }
-        #btn-abrir-modal-paciente {
-            background-color: #0dcaf0; 
-            color: black;
-        }
-        #btn-cadastro-rapido-voz {
-            background-color: #fd7e14;
+        main {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto; /* Permite rolagem SÓ na área principal */
+            height: calc(100vh - 70px); /* Altura total - altura do header */
         }
 
+        /* [NOVO] Classe para esconder/mostrar as "páginas" */
+        .view-section {
+            display: none; /* Todas as seções começam escondidas */
+        }
 
+        /* --- Estilos do Calendário (Ajustados) --- */
+        #calendar-container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .fc-event {
+            cursor: pointer;
+        }
+        .fc-timegrid-axis-header .fc-scrollgrid-shrink-cushion {
+            font-weight: bold;
+            text-align: center;
+        }
+
+        /* --- Estilos dos Botões de Ação (Cores) --- */
+        #btn-abrir-agendamento-manual { background-color: var(--color-azul); }
+        #btn-agendar-por-voz { background-color: var(--color-amarelo); color: black; }
+        #btn-abrir-lista-pacientes { background-color: var(--color-verde); }
+        #btn-abrir-dashboard { background-color: var(--color-roxo); }
+        #btn-abrir-modal-paciente { background-color: var(--color-azul-claro); color: black; }
+        #btn-cadastro-rapido-voz { background-color: var(--color-laranja); }
+
+
+        /* --- Estilos dos Modais (Sem mudanças) --- */
         .modal-container {
             display: none;
             position: fixed;
@@ -144,7 +227,6 @@
             margin-right: 10px;
         }
 
-        /* [MODIFICADO] Mudei de ID para Classe para reusar o estilo */
         .dias-semana-container {
             display: flex;
             flex-wrap: wrap; 
@@ -255,32 +337,55 @@
             margin-top: 0;
         }
 
+        /* --- [NOVO] Estilos para as "páginas" --- */
+        #view-pacientes, #view-dashboard {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
         @media (max-width: 768px) {
+            /* [MODIFICADO] Layout principal vira coluna no celular */
             body {
-                padding: 10px; 
+                flex-direction: column;
             }
-            .header-controls {
-                flex-direction: column; 
-                align-items: flex-start; 
-                gap: 15px;
+            .sidebar {
+                width: 100%; /* Ocupa a largura toda */
+                height: auto;
+                padding: 15px;
+                flex-direction: row; /* Sidebar vira um header no celular */
+                justify-content: space-between;
+                align-items: center;
             }
-            .header-controls h2 {
-                font-size: 1.4em; 
+            .sidebar h2 {
+                margin: 0;
+                font-size: 1.3em;
             }
-            .header-controls div {
-                display: flex;
-                flex-wrap: wrap; 
-                width: 100%;
-                gap: 10px;
+            .sidebar nav {
+                display: none; /* Esconde a navegação (precisaria de um botão "menu") */
             }
-            .header-controls button {
-                flex-grow: 1; 
-                min-width: calc(50% - 10px); 
-                margin-left: 0;
+            .sidebar-buttons {
+                display: none; /* Esconde os botões de ação (precisaria de um menu) */
             }
+
+            .main-content {
+                height: calc(100vh - 75px); /* Altura total - altura do novo header */
+            }
+            .main-header {
+                padding: 10px;
+                justify-content: center; /* Centraliza botões de voz */
+            }
+            .main-header button {
+                flex-grow: 1; /* Faz botões de voz ocuparem espaço */
+            }
+            main {
+                padding: 10px;
+            }
+
             .modal-content {
                 width: 95%;
-                margin: 20px auto; 
+                margin: 10px auto; 
                 padding: 20px 15px;
                 max-height: 90vh; 
             }
@@ -296,19 +401,70 @@
 </head>
 <body>
 
-    <div class="header-controls">
-        <h2>Minha Agenda de Fisioterapia</h2>
-        <div>
-            <button id="btn-abrir-agendamento-manual">Agendar Paciente 📅</button>
-            <button id="btn-agendar-por-voz">Agendar por Voz 🗣️</button>
-            <button id="btn-abrir-lista-pacientes">Ver Pacientes 📋</button>
-            <button id="btn-abrir-dashboard">Dashboard 📊</button>
+    <div class="sidebar">
+        <h2>FisioAgenda</h2>
+        <nav>
+            <a href="#" id="nav-agenda" class="active">📅 Agenda</a>
+            <a href="#" id="nav-pacientes">📋 Pacientes</a>
+            <a href="#" id="nav-dashboard">📊 Dashboard</a>
+        </nav>
+        <div class="sidebar-buttons">
             <button id="btn-abrir-modal-paciente">Cadastrar Novo Paciente +</button>
-            <button id="btn-cadastro-rapido-voz">Cadastrar por Voz 🎤</button>
+            <button id="btn-abrir-agendamento-manual">Agendar Paciente 📅</button>
         </div>
     </div>
 
-    <div id='calendar'></div>
+    <div class="main-content">
+        
+        <header class="main-header">
+            <button id="btn-agendar-por-voz">Agendar por Voz 🗣️</button>
+            <button id="btn-cadastro-rapido-voz">Cadastrar por Voz 🎤</button>
+        </header>
+        
+        <main>
+            <div id="view-agenda" class="view-section" style="display: block;">
+                <div id='calendar-container'>
+                    <div id='calendar'></div>
+                </div>
+            </div>
+
+            <div id="view-pacientes" class="view-section">
+                <h3>Pacientes Cadastrados</h3>
+                <p style="font-size: 0.9em; color: #555;">Clique em um paciente para ver seu histórico de evoluções.</p>
+                <div id="lista-pacientes-resultados">
+                    <table class="modal-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nome</th>
+                                <th>Telefone</th>
+                                <th>Ações</th> 
+                            </tr>
+                        </thead>
+                        <tbody id="lista-pacientes-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-dashboard" class="view-section">
+                <h3>Dashboard de Sessões Realizadas</h3>
+                <div id="dashboard-filtros">
+                    <label for="dash-mes">Mês:</label>
+                    <select id="dash-mes"></select>
+                    <label for="dash-ano">Ano:</label>
+                    <select id="dash-ano"></select>
+                    <button id="btn-buscar-dashboard">Buscar</button>
+                </div>
+                <p id="loading-dashboard">Carregando dados...</p>
+                <div id="dashboard-resultados">
+                    <table class="modal-table">
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
 
     <div id="modal-container" class="modal-container">
         <div class="modal-content">
@@ -375,7 +531,8 @@
                     </datalist>
 
                 <label style="margin-top: 20px;">Repetir semanalmente em:</label>
-                <div class="dias-semana-container"> <label class="checkbox-label"><input type="checkbox" name="dia-semana-clique" value="SU"> Dom</label>
+                <div class="dias-semana-container">
+                    <label class="checkbox-label"><input type="checkbox" name="dia-semana-clique" value="SU"> Dom</label>
                     <label class="checkbox-label"><input type="checkbox" name="dia-semana-clique" value="MO"> Seg</label>
                     <label class="checkbox-label"><input type="checkbox" name="dia-semana-clique" value="TU"> Ter</label>
                     <label class="checkbox-label"><input type="checkbox" name="dia-semana-clique" value="WE"> Qua</label>
@@ -425,47 +582,6 @@
         </div>
     </div>
 
-    <div id="modal-dashboard-container" class="modal-container">
-        <div class="modal-content">
-            <span class="modal-close" id="modal-dashboard-close">&times;</span>
-            <h3>Dashboard de Sessões Realizadas</h3>
-            <div id="dashboard-filtros">
-                <label for="dash-mes">Mês:</label>
-                <select id="dash-mes"></select>
-                <label for="dash-ano">Ano:</label>
-                <select id="dash-ano"></select>
-                <button id="btn-buscar-dashboard">Buscar</button>
-            </div>
-            <p id="loading-dashboard">Carregando dados...</p>
-            <div id="dashboard-resultados">
-                <table class="modal-table">
-                </table>
-            </div>
-        </div>
-    </div>
-    
-    <div id="modal-lista-pacientes-container" class="modal-container">
-        <div class="modal-content">
-            <span class="modal-close" id="modal-lista-pacientes-close">&times;</span>
-            <h3>Pacientes Cadastrados</h3>
-            <p style="font-size: 0.9em; color: #555;">Clique em um paciente para ver seu histórico de evoluções.</p>
-            <div id="lista-pacientes-resultados">
-                <table class="modal-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Nome</th>
-                            <th>Telefone</th>
-                            <th>Ações</th> 
-                        </tr>
-                    </thead>
-                    <tbody id="lista-pacientes-tbody">
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    
     <div id="modal-historico-container" class="modal-container">
         <div class="modal-content">
             <span class="modal-close" id="modal-historico-close">&times;</span>
@@ -528,20 +644,13 @@
             const pacienteDataListManual = document.getElementById('paciente-list-manual');
             const inputDataManual = document.getElementById('input-data-manual'); 
 
-            // --- Seletores (Modal Dashboard) ---
-            const btnAbrirDashboard = document.getElementById('btn-abrir-dashboard');
-            const modalDashboardContainer = document.getElementById('modal-dashboard-container');
-            const modalDashboardClose = document.getElementById('modal-dashboard-close');
-            const selectMes = document.getElementById('dash-mes');
-            const selectAno = document.getElementById('dash-ano');
+            // --- [MODIFICADO] Seletores (Dashboard e Lista Pacientes) ---
+            // Não são mais modais, mas sim seções da página
             const btnBuscarDashboard = document.getElementById('btn-buscar-dashboard');
             const loadingDashboard = document.getElementById('loading-dashboard');
             const dashboardResultados = document.getElementById('dashboard-resultados');
-
-            // --- Seletores (Modal Lista Pacientes) ---
-            const btnAbrirListaPacientes = document.getElementById('btn-abrir-lista-pacientes');
-            const modalListaPacientesContainer = document.getElementById('modal-lista-pacientes-container');
-            const modalListaPacientesClose = document.getElementById('modal-lista-pacientes-close');
+            const selectMes = document.getElementById('dash-mes');
+            const selectAno = document.getElementById('dash-ano');
             const listaPacientesTbody = document.getElementById('lista-pacientes-tbody');
 
             // --- Seletores (Modal Histórico) ---
@@ -554,6 +663,16 @@
             // --- Seletores de Voz ---
             const btnCadastroRapidoVoz = document.getElementById('btn-cadastro-rapido-voz');
             const btnAgendarPorVoz = document.getElementById('btn-agendar-por-voz'); 
+            
+            // --- [NOVO] Seletores da Navegação ---
+            const navAgenda = document.getElementById('nav-agenda');
+            const navPacientes = document.getElementById('nav-pacientes');
+            const navDashboard = document.getElementById('nav-dashboard');
+            const viewAgenda = document.getElementById('view-agenda');
+            const viewPacientes = document.getElementById('view-pacientes');
+            const viewDashboard = document.getElementById('view-dashboard');
+            const allViews = [viewAgenda, viewPacientes, viewDashboard];
+            const allNavLinks = [navAgenda, navPacientes, navDashboard];
 
             // --- Função Ajudante para Fuso Horário ---
             function formatLocalDate(date) {
@@ -789,16 +908,16 @@
                     if (response.ok) {
                         alert('Agendamento criado com sucesso!');
                         calendar.refetchEvents();
-                        return true; // Retorna sucesso
+                        return true; 
                     } else {
                         const error = await response.json();
                         alert(`Erro ao agendar: ${JSON.stringify(error.detail)}`);
-                        return false; // Retorna falha
+                        return false; 
                     }
                 } catch (error) { 
                     console.error('Erro de rede:', error); 
                     alert('Erro de conexão ao tentar agendar.');
-                    return false; // Retorna falha
+                    return false; 
                 }
             }
 
@@ -900,6 +1019,36 @@
                 calendar.render();
                 popularFiltrosDashboard();
             });
+            
+            // --- [NOVO] Lógica de Navegação da Sidebar ---
+            function showView(viewToShow, linkToActivate) {
+                // Esconde todas as seções
+                allViews.forEach(view => view.style.display = 'none');
+                // Mostra a seção desejada
+                viewToShow.style.display = 'block';
+
+                // Atualiza a classe 'active' nos links da sidebar
+                allNavLinks.forEach(link => link.classList.remove('active'));
+                linkToActivate.classList.add('active');
+            }
+
+            navAgenda.onclick = (e) => {
+                e.preventDefault();
+                showView(viewAgenda, navAgenda);
+            };
+            
+            navPacientes.onclick = (e) => {
+                e.preventDefault();
+                showView(viewPacientes, navPacientes);
+                abrirListaPacientes(); // Reutiliza a função para popular a tabela
+            };
+            
+            navDashboard.onclick = (e) => {
+                e.preventDefault();
+                showView(viewDashboard, navDashboard);
+                // A lógica do dashboard já é carregada ao clicar no botão "Buscar"
+            };
+
 
             // --- FUNÇÕES DO CALENDÁRIO ---
             
@@ -927,12 +1076,11 @@
                 const dia = dataInicio.toLocaleString('pt-BR', { dateStyle: 'short' });
                 novoAgendamentoHorario.textContent = `${dia} - ${inicio} às ${fim}`;
                 
-                // [NOVO] Auto-checka o dia da semana
                 const diasRRule = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
                 const diaValor = diasRRule[dataInicio.getDay()];
                 
                 document.querySelectorAll('input[name="dia-semana-clique"]').forEach(cb => {
-                    cb.checked = (cb.value === diaValor); // Marca apenas o dia clicado
+                    cb.checked = (cb.value === diaValor); 
                 });
 
                 modalNovoAgendamento.style.display = 'flex';
@@ -1152,7 +1300,7 @@
                         modalPacienteContainer.style.display = 'none';
                         pacienteIdEmEdicao = null; 
                         
-                        modalListaPacientesContainer.style.display = 'none'; 
+                        abrirListaPacientes(); // [MODIFICADO] Atualiza a tabela em vez de fechar
                     } else {
                         const error = await response.json();
                         console.error('Erro do backend (form):', error);
@@ -1196,7 +1344,6 @@
                     return;
                 }
                 
-                // [NOVO] Lê os checkboxes de repetição
                 const diasSelecionados = [];
                 document.querySelectorAll('input[name="dia-semana-clique"]:checked').forEach(cb => {
                     diasSelecionados.push(cb.value);
@@ -1237,23 +1384,21 @@
                 modalAgendamentoManualContainer.style.display = 'none';
             };
 
-            // [MODIFICADO] Auto-checka o dia da semana quando a data muda
             inputDataManual.onchange = () => {
                 const dataStr = inputDataManual.value;
                 if (dataStr) {
                     document.querySelectorAll('input[name="dia-semana"]').forEach(cb => cb.checked = false);
                     const dataObj = new Date(dataStr + 'T00:00:00'); 
                     const diasRRule = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
-                    const diaDaSemana = diasRRule[dataObj.getUTCDay()]; // Usa UTC para evitar problemas de fuso
+                    const diaDaSemana = diasRRule[dataObj.getUTCDay()]; 
                     
-                    const checkboxAlvo = document.querySelector(`input[name="dia-semana"][value="${diaDaSemana}"]`);
+                    const checkboxAlvo = document.querySelector(`#form-agendamento-manual input[name="dia-semana"][value="${diaDaSemana}"]`);
                     if (checkboxAlvo) {
                         checkboxAlvo.checked = true;
                     }
                 }
             };
 
-            // [MODIFICADO] formAgendamentoManual.onsubmit
             formAgendamentoManual.onsubmit = async (event) => {
                 event.preventDefault();
 
@@ -1262,7 +1407,7 @@
                 const horaStr = document.getElementById('input-hora-manual').value;
                 
                 const diasSelecionados = [];
-                document.querySelectorAll('input[name="dia-semana"]:checked').forEach(cb => {
+                document.querySelectorAll('#form-agendamento-manual input[name="dia-semana"]:checked').forEach(cb => {
                     diasSelecionados.push(cb.value);
                 });
 
@@ -1296,12 +1441,7 @@
             };
 
 
-            // --- LÓGICA DO MODAL DASHBOARD ---
-            btnAbrirDashboard.onclick = () => {
-                dashboardResultados.innerHTML = "";
-                modalDashboardContainer.style.display = 'flex';
-            };
-            modalDashboardClose.onclick = () => modalDashboardContainer.style.display = 'none';
+            // --- LÓGICA DO DASHBOARD ---
             btnBuscarDashboard.onclick = async () => {
                 const ano = selectAno.value;
                 const mes = selectMes.value;
@@ -1329,8 +1469,8 @@
                 }
             };
 
-            // --- LÓGICA DO MODAL LISTA PACIENTES (COM BOTÕES DE AÇÃO) ---
-            btnAbrirListaPacientes.onclick = () => {
+            // --- LÓGICA DA LISTA DE PACIENTES ---
+            function abrirListaPacientes() {
                 listaPacientesTbody.innerHTML = ""; 
                 listaDePacientesCache.sort((a, b) => a.nome.localeCompare(b.nome));
 
@@ -1381,14 +1521,11 @@
                         listaPacientesTbody.appendChild(tr);
                     });
                 }
-                modalListaPacientesContainer.style.display = 'flex';
             };
-            modalListaPacientesClose.onclick = () => modalListaPacientesContainer.style.display = 'none';
 
             // --- FUNÇÕES DE AÇÃO (EDITAR E EXCLUIR) ---
 
             function handleEditarPaciente(paciente) {
-                modalListaPacientesContainer.style.display = 'none';
                 pacienteIdEmEdicao = paciente.id;
                 
                 modalTituloPaciente.textContent = `Editando Paciente: ${paciente.nome}`;
@@ -1422,7 +1559,7 @@
                     if (response.ok) {
                         alert(`Paciente "${pacienteNome}" excluído com sucesso.`);
                         listaDePacientesCache = listaDePacientesCache.filter(p => p.id !== pacienteId);
-                        modalListaPacientesContainer.style.display = 'none';
+                        abrirListaPacientes(); // Atualiza a tabela
                         calendar.refetchEvents(); 
                     } else {
                         const error = await response.json();
