@@ -131,7 +131,6 @@
             font-weight: bold; 
             font-size: 0.9em;
         }
-        /* [NOVO] Estilo para o checkbox de repetição */
         .checkbox-label {
             display: flex;
             flex-direction: row;
@@ -144,6 +143,23 @@
             width: auto;
             margin-right: 10px;
         }
+
+        /* [NOVO] Estilos para o grupo de dias da semana */
+        #dias-semana-container {
+            display: flex;
+            flex-wrap: wrap; /* Permite quebrar a linha no celular */
+            gap: 5px 15px; /* Espaçamento vertical e horizontal */
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+        #dias-semana-container .checkbox-label {
+            font-weight: normal;
+            font-size: 0.9em;
+            margin-top: 0; /* Reseta a margem */
+        }
+
 
         .modal-content form input,
         .modal-content form select,
@@ -379,9 +395,18 @@
                 <label for="input-hora-manual">Hora (Início):</label>
                 <input type="time" id="input-hora-manual" required>
 
-                <label for="input-repetir-manual" class="checkbox-label">
-                    <input type="checkbox" id="input-repetir-manual"> Repetir semanalmente
-                </label>
+                <label style="margin-top: 20px;">Repetir semanalmente em:</label>
+                <div id="dias-semana-container">
+                    <label class="checkbox-label"><input type="checkbox" name="dia-semana" value="SU"> Dom</label>
+                    <label class="checkbox-label"><input type="checkbox" name="dia-semana" value="MO"> Seg</label>
+                    <label class="checkbox-label"><input type="checkbox" name="dia-semana" value="TU"> Ter</label>
+                    <label class="checkbox-label"><input type="checkbox" name="dia-semana" value="WE"> Qua</label>
+                    <label class="checkbox-label"><input type="checkbox" name="dia-semana" value="TH"> Qui</label>
+                    <label class="checkbox-label"><input type="checkbox" name="dia-semana" value="FR"> Sex</label>
+                    <label class="checkbox-label"><input type="checkbox" name="dia-semana" value="SA"> Sáb</label>
+                </div>
+                <small>Deixe todos desmarcados para não repetir.</small>
+
 
                 <button type="submit" id="btn-salvar-agendamento-manual">Agendar</button>
             </form>
@@ -489,7 +514,7 @@
             const formAgendamentoManual = document.getElementById('form-agendamento-manual');
             const inputPacienteManual = document.getElementById('input-paciente-manual');
             const pacienteDataListManual = document.getElementById('paciente-list-manual');
-            const inputRepetirManual = document.getElementById('input-repetir-manual'); // [NOVO]
+            const inputDataManual = document.getElementById('input-data-manual'); // [NOVO]
 
             // --- Seletores (Modal Dashboard) ---
             const btnAbrirDashboard = document.getElementById('btn-abrir-dashboard');
@@ -668,7 +693,7 @@
                         const dataFim = new Date(dataInicio.getTime() + 55 * 60000);
 
                         if (confirm(`Confirmar agendamento?\n\nPaciente: ${paciente.nome}\nHorário: ${dataInicio.toLocaleString('pt-BR')} até ${dataFim.toLocaleString('pt-BR')}`)) {
-                            await salvarAgendamento(paciente.id, dataInicio, dataFim);
+                            await salvarAgendamento(paciente.id, dataInicio, dataFim, null); // Sem repetição por voz
                         }
 
                     } catch (error) {
@@ -735,12 +760,13 @@
                 return [hora, minuto];
             }
 
+            // [FUNÇÃO MODIFICADA] para aceitar 'rrule'
             async function salvarAgendamento(pacienteId, dataInicio, dataFim, rrule = null) {
                 const novoAgendamento = {
                     paciente_id: pacienteId, 
                     data_hora_inicio: formatLocalDate(dataInicio),
                     data_hora_fim: formatLocalDate(dataFim),
-                    rrule: rrule // [NOVO] Envia a regra de repetição
+                    rrule: rrule // Envia a regra de repetição
                 };
 
                 try {
@@ -1152,7 +1178,6 @@
                     return;
                 }
 
-                // Salva o agendamento (sem repetição)
                 const sucesso = await salvarAgendamento(pacienteId, currentSelectionInfo.start, currentSelectionInfo.end, null);
                 
                 if (sucesso) {
@@ -1172,6 +1197,9 @@
                     option.value = paciente.nome; 
                     pacienteDataListManual.appendChild(option);
                 });
+                
+                // [NOVO] Limpa os checkboxes de repetição
+                document.querySelectorAll('input[name="dia-semana"]').forEach(cb => cb.checked = false);
 
                 modalAgendamentoManualContainer.style.display = 'flex';
                 inputPacienteManual.focus();
@@ -1181,13 +1209,35 @@
                 modalAgendamentoManualContainer.style.display = 'none';
             };
 
+            // [NOVO] Auto-checka o dia da semana quando a data muda
+            inputDataManual.onchange = () => {
+                const dataStr = inputDataManual.value;
+                if (dataStr) {
+                    document.querySelectorAll('input[name="dia-semana"]').forEach(cb => cb.checked = false);
+                    const dataObj = new Date(dataStr + 'T00:00:00'); 
+                    const diasRRule = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+                    const diaDaSemana = diasRRule[dataObj.getDay()]; 
+                    
+                    const checkboxAlvo = document.querySelector(`input[name="dia-semana"][value="${diaDaSemana}"]`);
+                    if (checkboxAlvo) {
+                        checkboxAlvo.checked = true;
+                    }
+                }
+            };
+
+            // [MODIFICADO] formAgendamentoManual.onsubmit
             formAgendamentoManual.onsubmit = async (event) => {
                 event.preventDefault();
 
                 const nomePaciente = document.getElementById('input-paciente-manual').value;
                 const dataStr = document.getElementById('input-data-manual').value;
                 const horaStr = document.getElementById('input-hora-manual').value;
-                const repetir = document.getElementById('input-repetir-manual').checked; // [NOVO]
+                
+                // Pega os dias da semana marcados
+                const diasSelecionados = [];
+                document.querySelectorAll('input[name="dia-semana"]:checked').forEach(cb => {
+                    diasSelecionados.push(cb.value);
+                });
 
                 if (!nomePaciente || !dataStr || !horaStr) {
                     alert("Por favor, preencha todos os campos.");
@@ -1206,12 +1256,10 @@
                 const dataInicio = new Date(`${dataStr}T${horaStr}`);
                 const dataFim = new Date(dataInicio.getTime() + 55 * 60000); 
 
-                // [NOVO] Monta a regra de repetição (rrule)
+                // Monta a regra de repetição (rrule)
                 let rruleStr = null;
-                if (repetir) {
-                    const diasRRule = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
-                    const diaDaSemana = diasRRule[dataInicio.getDay()]; // Pega o dia (ex: 'WE')
-                    rruleStr = `FREQ=WEEKLY;BYDAY=${diaDaSemana}`;
+                if (diasSelecionados.length > 0) {
+                    rruleStr = `FREQ=WEEKLY;BYDAY=${diasSelecionados.join(',')}`;
                 }
 
                 const sucesso = await salvarAgendamento(pacienteEncontrado.id, dataInicio, dataFim, rruleStr);
