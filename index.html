@@ -698,8 +698,8 @@
             const allViews = [viewAgenda, viewPacientes, viewDashboard];
             const allNavLinks = [navAgenda, navPacientes, navDashboard];
 
-            // --- [REMOVIDO] Função 'formatLocalDate' (causadora do bug) ---
-
+            // --- [REMOVIDA] Função 'formatLocalDate' (causadora do bug) ---
+            
             // --- Lógica da API de Voz para CADASTRO RÁPIDO ---
             const SpeechRecognitionCadastro = window.SpeechRecognition || window.webkitSpeechRecognition;
             let recognitionCadastro;
@@ -906,11 +906,12 @@
                 return [hora, minuto];
             }
 
+            // [CORRIGIDO] Usa .toISOString() para enviar o fuso horário correto
             async function salvarAgendamento(pacienteId, dataInicio, dataFim, rrule = null) {
                 const novoAgendamento = {
                     paciente_id: pacienteId, 
-                    data_hora_inicio: dataInicio.toISOString(), // [CORRIGIDO] Usa .toISOString()
-                    data_hora_fim: dataFim.toISOString(),     // [CORRIGIDO] Usa .toISOString()
+                    data_hora_inicio: dataInicio.toISOString(),
+                    data_hora_fim: dataFim.toISOString(),
                     rrule: rrule 
                 };
 
@@ -1362,7 +1363,6 @@
                     diasSelecionados.push(cb.value);
                 });
 
-                // [CORREÇÃO LÓGICA] Garante que o dia clicado esteja na regra
                 const diasRRule = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
                 const diaDaSemanaInicio = diasRRule[currentSelectionInfo.start.getDay()];
                 if (diasSelecionados.length > 0 && !diasSelecionados.includes(diaDaSemanaInicio)) {
