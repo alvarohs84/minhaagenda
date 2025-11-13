@@ -20,7 +20,7 @@
             cursor: pointer;
         }
 
-        /* [CORRIGIDO] Deixa o texto 'Horário' (allDayText) em negrito */
+        /* [ATUALIZADO] Deixa o texto 'Horário' (allDayText) em negrito */
         .fc-timegrid-axis-header .fc-scrollgrid-shrink-cushion {
             font-weight: bold;
             text-align: center;
@@ -45,9 +45,12 @@
             margin-left: 10px;
         }
         
-        /* [ESTILOS DOS BOTÕES ATUALIZADOS] */
         #btn-abrir-agendamento-manual {
             background-color: #0d6efd; 
+        }
+        #btn-agendar-por-voz {
+            background-color: #ffc107; /* Amarelo */
+            color: black;
         }
         #btn-abrir-lista-pacientes {
             background-color: #198754; 
@@ -57,10 +60,6 @@
         }
         #btn-abrir-modal-paciente {
             background-color: #0dcaf0; 
-            color: black;
-        }
-        #btn-agendar-por-voz {
-            background-color: #ffc107; /* Amarelo */
             color: black;
         }
         #btn-cadastro-rapido-voz {
@@ -497,9 +496,9 @@
             const loadingHistorico = document.getElementById('loading-historico');
             const historicoEvolucoesContent = document.getElementById('historico-evolucoes-content');
 
-            // --- Seletores de Voz ---
+            // --- Seletores de Voz (CORRIGIDOS) ---
             const btnCadastroRapidoVoz = document.getElementById('btn-cadastro-rapido-voz');
-            const btnAgendarPorVoz = document.getElementById('btn-agendar-por-voz'); // [NOVO]
+            const btnAgendarPorVoz = document.getElementById('btn-agendar-por-voz'); 
 
             // --- Função Ajudante para Fuso Horário ---
             function formatLocalDate(date) {
@@ -750,14 +749,13 @@
                 initialView: isMobile ? 'timeGridDay' : 'timeGridWeek', 
                 locale: 'pt-br',
                 
-                // [CONFIGURAÇÕES DE HORÁRIO ATUALIZADAS]
-                allDayText: 'Horário',         // Muda o texto "all-day"
-                allDaySlot: true,              // Re-habilita o slot para mostrar o texto
-                slotMinTime: '08:00:00',       // Início da agenda às 08:00
-                slotMaxTime: '20:00:00',       // Fim da agenda às 20:00 (para mostrar o slot das 19:00)
-                slotDuration: '00:30:00',      // Define a grade para 30 min (para arrastar)
-                slotLabelInterval: '01:00:00', // Mostra rótulos (08:00, 09:00...)
-                slotLabelFormat: {             // Formata os rótulos
+                allDayText: 'Horário',         
+                allDaySlot: true,              
+                slotMinTime: '08:00:00',       
+                slotMaxTime: '20:00:00',       
+                slotDuration: '00:30:00',      
+                slotLabelInterval: '01:00:00', 
+                slotLabelFormat: {             
                     hour: '2-digit',
                     minute: '2-digit',
                     hour12: false
