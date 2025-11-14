@@ -82,6 +82,8 @@
             color: white;
         }
         .sidebar-buttons {
+            /* Este container agora está vazio no desktop, */
+            /* mas pode ser usado no futuro. */
             display: flex;
             flex-direction: column;
             gap: 10px; 
@@ -122,6 +124,7 @@
             cursor: pointer;
             color: white;
             font-weight: bold;
+            margin-left: 0; /* Reset do margin */
         }
         
         main {
@@ -358,7 +361,6 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
-        /* Estilos do Toastify */
         .toastify {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             font-size: 1em;
@@ -394,22 +396,28 @@
                 display: none; 
             }
             .sidebar nav {
-                display: none; 
+                display: none; /* Navegação principal escondida no celular */
             }
             .sidebar-buttons {
-                display: none; 
+                display: none; /* Botões da sidebar escondidos no celular */
             }
 
             .main-content {
                 height: calc(100vh - 75px); 
             }
+            /* [CSS MODIFICADO] */
             .main-header {
                 padding: 10px;
                 justify-content: center; 
+                flex-wrap: wrap; /* Faz os 4 botões quebrarem a linha */
+                gap: 10px;
             }
             .main-header button {
                 flex-grow: 1; 
+                min-width: calc(50% - 10px); /* Cria uma grade 2x2 */
+                margin-left: 0;
             }
+            
             main {
                 padding: 10px;
             }
@@ -442,14 +450,14 @@
             <a href="#" id="nav-dashboard">📊 Dashboard</a>
         </nav>
         <div class="sidebar-buttons">
-            <button id="btn-abrir-modal-paciente">Cadastrar Novo Paciente +</button>
-            <button id="btn-abrir-agendamento-manual">Agendar Paciente 📅</button>
-        </div>
+            </div>
     </div>
 
     <div class="main-content">
         
         <header class="main-header">
+            <button id="btn-abrir-modal-paciente">Cadastrar Novo Paciente +</button>
+            <button id="btn-abrir-agendamento-manual">Agendar Paciente 📅</button>
             <button id="btn-agendar-por-voz">Agendar por Voz 🗣️</button>
             <button id="btn-cadastro-rapido-voz">Cadastrar por Voz 🎤</button>
         </header>
@@ -647,7 +655,7 @@
             let pacienteIdEmEdicao = null;
             let currentSelectionInfo = null; 
 
-            // --- [NOVAS] Funções de Notificação (Toast) ---
+            // --- Funções de Notificação (Toast) ---
             function showToast(message, type = 'success') {
                 const backgroundColor = type === 'success' ? 
                     "linear-gradient(to right, #00b09b, #96c93d)" : 
@@ -657,9 +665,9 @@
                     text: message,
                     duration: 3000,
                     close: true,
-                    gravity: "top", // `top` or `bottom`
-                    position: "right", // `left`, `center` or `right`
-                    stopOnFocus: true, // Prevents dismissing of toast on hover
+                    gravity: "top", 
+                    position: "right", 
+                    stopOnFocus: true, 
                     style: {
                         background: backgroundColor,
                         boxShadow: "0 3px 10px rgba(0, 0, 0, 0.2)",
@@ -669,14 +677,9 @@
                     }
                 }).showToast();
             }
-
-            function showSuccessToast(message) {
-                showToast(message, 'success');
-            }
-
-            function showErrorToast(message) {
-                showToast(message, 'error');
-            }
+            function showSuccessToast(message) { showToast(message, 'success'); }
+            function showErrorToast(message) { showToast(message, 'error'); }
+            
 
             // --- Seletores (Modal Agendamento) ---
             const modalContainer = document.getElementById('modal-container');
@@ -747,7 +750,7 @@
             const viewDashboard = document.getElementById('view-dashboard');
             const allViews = [viewAgenda, viewPacientes, viewDashboard];
             const allNavLinks = [navAgenda, navPacientes, navDashboard];
-            
+
             // --- Lógica da API de Voz para CADASTRO RÁPIDO ---
             const SpeechRecognitionCadastro = window.SpeechRecognition || window.webkitSpeechRecognition;
             let recognitionCadastro;
@@ -1364,7 +1367,49 @@
             };
 
             // --- LÓGICA DA API DE VOZ (EVOLUÇÃO) ---
-            // ... (código da voz de evolução, sem mudanças) ...
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            let recognition;
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.lang = 'pt-BR';
+                recognition.interimResults = true;
+                recognition.continuous = true;
+                let finalTranscript = '';
+                recognition.onstart = () => {
+                    finalTranscript = textoEvolucao.value;
+                    statusGravacao.textContent = 'Ouvindo... Fale agora.';
+                    btnGravar.textContent = 'Parar ⏹️';
+                    btnGravar.style.backgroundColor = '#6c757d';
+                };
+                recognition.onend = () => {
+                    statusGravacao.textContent = 'Gravação parada.';
+                    btnGravar.textContent = 'Gravar 🎤';
+                    btnGravar.style.backgroundColor = '#dc3545';
+                };
+                recognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += (finalTranscript.length > 0 ? ' ' : '') + transcript;
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+                    textoEvolucao.value = finalTranscript + (interimTranscript ? ' (' + interimTranscript + ')' : '');
+                };
+                recognition.onerror = (event) => { statusGravacao.textContent = 'Erro na gravação: ' + event.error; };
+            } else {
+                statusGravacao.textContent = 'Seu navegador não suporta a API de Voz.';
+                btnGravar.disabled = true;
+            }
+            btnGravar.onclick = () => {
+                if (btnGravar.textContent.includes('Gravar')) {
+                    recognition.start();
+                } else {
+                    recognition.stop();
+                }
+            };
             
             // --- LÓGICA DO MODAL DE CADASTRO DE PACIENTE (CRIAR E EDITAR) ---
             btnAbrirModalPaciente.onclick = () => {
