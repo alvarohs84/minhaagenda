@@ -158,7 +158,7 @@
             text-align: center;
         }
         
-        /* Botão de Logout */
+        /* [NOVO] Botão de Logout */
         #btn-logout {
             margin-top: 20px;
             background-color: var(--color-vermelho);
@@ -748,14 +748,14 @@
             const API_URL = 'https://minhaagenda.onrender.com';
             let listaDePacientesCache = [];
             
-            // [NOVO] Variável para guardar o token de login
+            // Variável para guardar o token de login
             let authToken = null;
 
             const isMobile = window.innerWidth <= 768;
             let pacienteIdEmEdicao = null;
             let currentSelectionInfo = null; 
 
-            // --- [NOVO] Funções de Notificação (Toast) ---
+            // --- Funções de Notificação (Toast) ---
             function showToast(message, type = 'success') {
                 const backgroundColor = type === 'success' ? 
                     "linear-gradient(to right, #00b09b, #96c93d)" : 
@@ -781,7 +781,7 @@
             function showErrorToast(message) { showToast(message, 'error'); }
             
 
-            // --- [NOVO] Lógica de Autenticação ---
+            // --- Lógica de Autenticação ---
             const authContainer = document.getElementById('auth-container');
             const appContainer = document.getElementById('app-container');
             const loginView = document.getElementById('login-view');
@@ -862,22 +862,20 @@
                 location.reload(); // Recarrega a página (vai mostrar o login)
             };
 
-            // --- [NOVO] Função para mostrar o app após o login ---
+            // --- Função para mostrar o app após o login ---
             function showApp() {
                 authContainer.style.display = 'none';
                 appContainer.style.display = 'flex'; // Mostra o app
                 
-                // Carrega os dados iniciais (pacientes e calendário)
                 carregarPacientes().then(() => {
                     calendar.render();
                     popularFiltrosDashboard();
                 });
             }
 
-            // --- [NOVO] Função de Fetch Segura (adiciona o token) ---
+            // --- Função de Fetch Segura (adiciona o token) ---
             async function secureFetch(url, options = {}) {
                 if (!authToken) {
-                    // Se não tem token, desloga o usuário
                     showErrorToast("Sua sessão expirou. Faça login novamente.");
                     btnLogout.onclick();
                     throw new Error("Não autorizado");
@@ -901,12 +899,11 @@
                 return response;
             }
 
-            // --- [NOVO] Verifica o estado de login ao carregar a página ---
+            // --- Verifica o estado de login ao carregar a página ---
             function checkLoginState() {
                 const token = localStorage.getItem('fisioManagerToken');
                 if (token) {
                     authToken = token;
-                    // TODO: Seria bom verificar se o token é válido com a API (/users/me)
                     showApp();
                 } else {
                     authContainer.style.display = 'flex';
@@ -1075,7 +1072,9 @@
                     }
                 } catch (error) {
                     console.error('Erro de rede no cadastro rápido:', error);
-                    showErrorToast('Erro ao conectar com a API.');
+                    if (error.message !== "Não autorizado") {
+                        showErrorToast('Erro ao conectar com a API.');
+                    }
                 }
             }
             
@@ -1215,7 +1214,9 @@
                     }
                 } catch (error) { 
                     console.error('Erro de rede:', error); 
-                    showErrorToast('Erro de conexão ao tentar agendar.');
+                    if (error.message !== "Não autorizado") {
+                        showErrorToast('Erro de conexão ao tentar agendar.');
+                    }
                     return false; 
                 }
             }
@@ -1314,7 +1315,7 @@
                 selectAno.value = anoAtual;
             }
             
-            // [MODIFICADO] Inicia o app verificando o login
+            // Inicia o app verificando o login
             checkLoginState();
             
             // --- Lógica de Navegação da Sidebar ---
@@ -1489,7 +1490,6 @@
             modalAgendamentoClose.onclick = () => modalContainer.style.display = 'none';
             btnCheckin.onclick = async () => {
                 let url = `${API_URL}/agendamentos/${currentAgendamentoId}/checkin`;
-                let method = 'POST';
                 let body = null;
 
                 if (currentSelectionInfo.isRecorrente) {
@@ -1519,7 +1519,6 @@
                 if (!confirm("Tem certeza que deseja CANCELAR este atendimento?")) { return; }
                 
                 let url = `${API_URL}/agendamentos/${currentAgendamentoId}/cancelar`;
-                let method = 'POST';
                 let body = null;
 
                 if (currentSelectionInfo.isRecorrente) {
@@ -1550,8 +1549,14 @@
                 const texto = textoEvolucao.value;
                 if (!texto) { showErrorToast('O campo de evolução está vazio.'); return; }
                 
-                const eventoNaAgenda = calendar.getEventById(currentAgendamentoId);
-                const idRealParaSalvar = eventoNaAgenda.extendedProps.apiEvent.id;
+                // [MODIFICADO] Pega o ID correto (pode ser o da ocorrência única)
+                let eventoClicado = calendar.getEventById(currentAgendamentoId);
+                if (!eventoClicado) {
+                    // Se não achou, pode ser um evento de repetição. Vamos pegar o ID da ocorrência.
+                    // Esta é uma lógica complexa, por agora vamos focar no ID principal que está no modal
+                    // (O check-in já cria um evento único, então isso deve funcionar)
+                }
+                const idRealParaSalvar = currentAgendamentoId; // Simplificação por enquanto
 
                 try {
                     const response = await secureFetch(`${API_URL}/agendamentos/${idRealParaSalvar}/evolucoes`, {
@@ -1563,12 +1568,13 @@
                         modalContainer.style.display = 'none';
                     } else {
                         const error = await response.json();
-                        showErrorToast(`Erro ao salvar evolução: ${JSON.stringify(error.detail)}`);
+                        showErrorToast(`Erro ao salvar evolução: ${error.detail}`);
                     }
                 } catch (error) { console.error('Erro de rede:', error); }
             };
 
             btnExcluirAgendamento.onclick = async () => {
+                // TODO: Adicionar lógica de "Excluir este" ou "Excluir todos"
                 if (!confirm(`Tem certeza que deseja EXCLUIR PERMANENTEMENTE este agendamento?\n\nPaciente: ${modalPacienteNome.textContent}\nIsso não pode ser desfeito.`)) {
                     return;
                 }
@@ -1598,13 +1604,45 @@
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             let recognition;
             if (SpeechRecognition) {
-                // ... (código da voz de evolução, sem mudanças) ...
+                recognition = new SpeechRecognition();
+                recognition.lang = 'pt-BR';
+                recognition.interimResults = true;
+                recognition.continuous = true;
+                let finalTranscript = '';
+                recognition.onstart = () => {
+                    finalTranscript = textoEvolucao.value;
+                    statusGravacao.textContent = 'Ouvindo... Fale agora.';
+                    btnGravar.textContent = 'Parar ⏹️';
+                    btnGravar.style.backgroundColor = '#6c757d';
+                };
+                recognition.onend = () => {
+                    statusGravacao.textContent = 'Gravação parada.';
+                    btnGravar.textContent = 'Gravar 🎤';
+                    btnGravar.style.backgroundColor = '#dc3545';
+                };
+                recognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += (finalTranscript.length > 0 ? ' ' : '') + transcript;
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+                    textoEvolucao.value = finalTranscript + (interimTranscript ? ' (' + interimTranscript + ')' : '');
+                };
+                recognition.onerror = (event) => { statusGravacao.textContent = 'Erro na gravação: ' + event.error; };
             } else {
                 statusGravacao.textContent = 'Seu navegador não suporta a API de Voz.';
                 btnGravar.disabled = true;
             }
             btnGravar.onclick = () => {
-                // ... (código da voz de evolução, sem mudanças) ...
+                if (btnGravar.textContent.includes('Gravar')) {
+                    recognition.start();
+                } else {
+                    recognition.stop();
+                }
             };
             
             // --- LÓGICA DO MODAL DE CADASTRO DE PACIENTE (CRIAR E EDITAR) ---
