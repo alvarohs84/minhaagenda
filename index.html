@@ -31,73 +31,9 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 0;
+            display: flex; 
             height: 100vh;
             overflow: hidden; 
-        }
-        
-        /* --- [NOVO] Estilos de Autenticação --- */
-        #auth-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: var(--main-bg);
-        }
-        .auth-form-container {
-            background: white;
-            padding: 2.5rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 400px;
-        }
-        .auth-form-container h2 {
-            margin-top: 0;
-            text-align: center;
-            color: var(--sidebar-bg);
-        }
-        .auth-form-container form {
-            display: flex;
-            flex-direction: column;
-        }
-        .auth-form-container label {
-            margin-top: 1rem;
-            margin-bottom: 0.5rem;
-            font-weight: bold;
-        }
-        .auth-form-container input {
-            padding: 10px 12px;
-            font-size: 1em;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        .auth-form-container button {
-            margin-top: 1.5rem;
-            padding: 12px;
-            font-size: 1.1em;
-            font-weight: bold;
-            color: white;
-            background-color: var(--sidebar-active-bg);
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .auth-form-container .toggle-link {
-            margin-top: 1rem;
-            text-align: center;
-            font-size: 0.9em;
-        }
-        .auth-form-container .toggle-link a {
-            color: var(--sidebar-active-bg);
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        /* [MODIFICADO] Layout principal começa escondido */
-        #app-container {
-            display: none; /* Começa escondido */
-            flex-direction: row;
-            height: 100vh;
         }
 
         /* --- Estilos do Menu Lateral (Sidebar) --- */
@@ -158,13 +94,6 @@
             text-align: center;
         }
         
-        /* [NOVO] Botão de Logout */
-        #btn-logout {
-            margin-top: 20px;
-            background-color: var(--color-vermelho);
-            color: white;
-        }
-
         /* --- Estilos da Área Principal --- */
         .main-content {
             flex-grow: 1; 
@@ -204,6 +133,7 @@
             display: none; 
         }
 
+        /* --- Estilos do Calendário (Ajustados) --- */
         #calendar-container {
             max-width: 1100px;
             margin: 0 auto;
@@ -216,6 +146,7 @@
             text-align: center;
         }
 
+        /* --- Estilos dos Botões de Ação (Cores) --- */
         #btn-abrir-agendamento-manual { background-color: var(--color-azul); }
         #btn-agendar-por-voz { background-color: var(--color-amarelo); color: black; }
         #btn-abrir-lista-pacientes { background-color: var(--color-verde); }
@@ -224,6 +155,7 @@
         #btn-cadastro-rapido-voz { background-color: var(--color-laranja); }
 
 
+        /* --- Estilos dos Modais --- */
         .modal-container {
             display: none;
             position: fixed;
@@ -443,8 +375,9 @@
             body {
                 flex-direction: column;
             }
+            /* [MODIFICADO] Mostra o #app-container */
             #app-container {
-                flex-direction: column; /* Continua sendo coluna no geral */
+                flex-direction: column; 
             }
             .sidebar {
                 width: 100%; 
@@ -453,7 +386,7 @@
                 flex-direction: row; 
                 justify-content: space-between;
                 align-items: center;
-                box-sizing: border-box; /* Garante que o padding não estoure */
+                box-sizing: border-box; 
             }
             .sidebar-logo img {
                 width: 150px; 
@@ -466,7 +399,7 @@
                 display: none; 
             }
             #btn-logout {
-                display: none; /* Esconde o logout da sidebar no celular (precisaria de menu hamburguer) */
+                display: none; 
             }
 
             .main-content {
@@ -506,33 +439,7 @@
 </head>
 <body>
 
-    <div id="auth-container">
-        <div class="auth-form-container" id="login-view">
-            <h2>Login - FisioManager</h2>
-            <form id="form-login">
-                <label for="login-email">Email:</label>
-                <input type="email" id="login-email" required>
-                <label for="login-password">Senha:</label>
-                <input type="password" id="login-password" required>
-                <button type="submit">Entrar</button>
-            </form>
-            <p class="toggle-link">Não tem uma conta? <a id="show-register">Cadastre-se</a></p>
-        </div>
-
-        <div class="auth-form-container" id="register-view" style="display: none;">
-            <h2>Cadastro</h2>
-            <form id="form-register">
-                <label for="register-email">Email:</label>
-                <input type="email" id="register-email" required>
-                <label for="register-password">Senha:</label>
-                <input type="password" id="register-password" required>
-                <button type="submit">Criar Conta</button>
-            </form>
-            <p class="toggle-link">Já tem uma conta? <a id="show-login">Faça login</a></p>
-        </div>
-    </div>
-
-    <div id="app-container">
+    <div id="app-container" style="display: flex;">
         <div class="sidebar">
             <div class="sidebar-logo">
                 <img src="FisioManager.png" alt="FisioManager Logo">
@@ -546,8 +453,7 @@
                 <button id="btn-abrir-modal-paciente">Cadastrar Novo Paciente +</button>
                 <button id="btn-abrir-agendamento-manual">Agendar Paciente 📅</button>
             </div>
-            <button id="btn-logout">Sair ➔</button>
-        </div>
+            </div>
 
         <div class="main-content">
             
@@ -748,9 +654,6 @@
             const API_URL = 'https://minhaagenda.onrender.com';
             let listaDePacientesCache = [];
             
-            // Variável para guardar o token de login
-            let authToken = null;
-
             const isMobile = window.innerWidth <= 768;
             let pacienteIdEmEdicao = null;
             let currentSelectionInfo = null; 
@@ -780,136 +683,9 @@
             function showSuccessToast(message) { showToast(message, 'success'); }
             function showErrorToast(message) { showToast(message, 'error'); }
             
-
-            // --- Lógica de Autenticação ---
-            const authContainer = document.getElementById('auth-container');
-            const appContainer = document.getElementById('app-container');
-            const loginView = document.getElementById('login-view');
-            const registerView = document.getElementById('register-view');
-            const showLogin = document.getElementById('show-login');
-            const showRegister = document.getElementById('show-register');
-            const formLogin = document.getElementById('form-login');
-            const formRegister = document.getElementById('form-register');
-            const btnLogout = document.getElementById('btn-logout');
-
-            showRegister.onclick = () => {
-                loginView.style.display = 'none';
-                registerView.style.display = 'block';
-            };
-            showLogin.onclick = () => {
-                loginView.style.display = 'block';
-                registerView.style.display = 'none';
-            };
-
-            formLogin.onsubmit = async (e) => {
-                e.preventDefault();
-                const email = document.getElementById('login-email').value;
-                const password = document.getElementById('login-password').value;
-                
-                const formData = new URLSearchParams();
-                formData.append('username', email);
-                formData.append('password', password);
-
-                try {
-                    const response = await fetch(`${API_URL}/token`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: formData
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        authToken = data.access_token;
-                        localStorage.setItem('fisioManagerToken', authToken); // Salva o token
-                        showApp();
-                    } else {
-                        showErrorToast("Email ou senha incorretos.");
-                    }
-                } catch (error) {
-                    showErrorToast("Erro ao conectar com a API.");
-                }
-            };
+            // --- [REMOVIDA] Lógica de Autenticação ---
             
-            formRegister.onsubmit = async (e) => {
-                e.preventDefault();
-                const email = document.getElementById('register-email').value;
-                const password = document.getElementById('register-password').value;
-
-                try {
-                    const response = await fetch(`${API_URL}/register`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: email, password: password })
-                    });
-
-                    if (response.ok) {
-                        showSuccessToast("Conta criada com sucesso! Faça o login.");
-                        showLogin.onclick(); // Volta para a tela de login
-                    } else {
-                        const error = await response.json();
-                        showErrorToast(`Erro ao cadastrar: ${error.detail}`);
-                    }
-                } catch (error) {
-                    showErrorToast("Erro ao conectar com a API.");
-                }
-            };
-            
-            btnLogout.onclick = () => {
-                authToken = null;
-                localStorage.removeItem('fisioManagerToken');
-                location.reload(); // Recarrega a página (vai mostrar o login)
-            };
-
-            // --- Função para mostrar o app após o login ---
-            function showApp() {
-                authContainer.style.display = 'none';
-                appContainer.style.display = 'flex'; // Mostra o app
-                
-                carregarPacientes().then(() => {
-                    calendar.render();
-                    popularFiltrosDashboard();
-                });
-            }
-
-            // --- Função de Fetch Segura (adiciona o token) ---
-            async function secureFetch(url, options = {}) {
-                if (!authToken) {
-                    showErrorToast("Sua sessão expirou. Faça login novamente.");
-                    btnLogout.onclick();
-                    throw new Error("Não autorizado");
-                }
-
-                const defaultHeaders = {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}`
-                };
-
-                options.headers = { ...defaultHeaders, ...options.headers };
-                
-                const response = await fetch(url, options);
-
-                if (response.status === 401) { // Não autorizado
-                    showErrorToast("Sua sessão expirou. Faça login novamente.");
-                    btnLogout.onclick();
-                    throw new Error("Não autorizado");
-                }
-                
-                return response;
-            }
-
-            // --- Verifica o estado de login ao carregar a página ---
-            function checkLoginState() {
-                const token = localStorage.getItem('fisioManagerToken');
-                if (token) {
-                    authToken = token;
-                    showApp();
-                } else {
-                    authContainer.style.display = 'flex';
-                }
-            }
-            
+            // --- [REMOVIDO] secureFetch ---
 
             // --- Seletores (Modal Agendamento) ---
             const modalContainer = document.getElementById('modal-container');
@@ -1056,8 +832,9 @@
                 };
 
                 try {
-                    const response = await secureFetch(`${API_URL}/pacientes`, {
+                    const response = await fetch(`${API_URL}/pacientes`, {
                         method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(novoPaciente)
                     });
 
@@ -1072,9 +849,7 @@
                     }
                 } catch (error) {
                     console.error('Erro de rede no cadastro rápido:', error);
-                    if (error.message !== "Não autorizado") {
-                        showErrorToast('Erro ao conectar com a API.');
-                    }
+                    showErrorToast('Erro ao conectar com a API.');
                 }
             }
             
@@ -1199,8 +974,9 @@
                 };
 
                 try {
-                    const response = await secureFetch(`${API_URL}/agendamentos`, {
+                    const response = await fetch(`${API_URL}/agendamentos`, {
                         method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(novoAgendamento)
                     });
                     if (response.ok) {
@@ -1214,9 +990,7 @@
                     }
                 } catch (error) { 
                     console.error('Erro de rede:', error); 
-                    if (error.message !== "Não autorizado") {
-                        showErrorToast('Erro de conexão ao tentar agendar.');
-                    }
+                    showErrorToast('Erro de conexão ao tentar agendar.');
                     return false; 
                 }
             }
@@ -1256,44 +1030,47 @@
                 eventClick: handleEventClick,
                 eventDrop: handleEventDrop, 
                 
-                events: async function(fetchInfo, successCallback, failureCallback) {
+                events: function(fetchInfo, successCallback, failureCallback) {
                     const start = fetchInfo.start.toISOString();
                     const end = fetchInfo.end.toISOString();
                     
-                    try {
-                        const response = await secureFetch(`${API_URL}/agendamentos?start=${start}&end=${end}`);
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        const data = await response.json();
-                        const transformedData = data.map(apiEvent => {
-                            let color = '#3788d8';
-                            if (apiEvent.status === 'Presente') color = '#2ca02c';
-                            if (apiEvent.status === 'Cancelado') color = '#6c757d';
-                            return {
-                                id: apiEvent.id,
-                                title: `${apiEvent.paciente.nome} (${apiEvent.status})`,
-                                start: apiEvent.data_hora_inicio,
-                                end: apiEvent.data_hora_fim,
-                                extendedProps: { 
-                                    apiEvent: apiEvent,
-                                    dataOcorrencia: apiEvent.data_hora_inicio 
-                                },
-                                color: color
-                            };
+                    fetch(`${API_URL}/agendamentos?start=${start}&end=${end}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            const transformedData = data.map(apiEvent => {
+                                let color = '#3788d8';
+                                if (apiEvent.status === 'Presente') color = '#2ca02c';
+                                if (apiEvent.status === 'Cancelado') color = '#6c757d';
+                                return {
+                                    id: apiEvent.id,
+                                    title: `${apiEvent.paciente.nome} (${apiEvent.status})`,
+                                    start: apiEvent.data_hora_inicio,
+                                    end: apiEvent.data_hora_fim,
+                                    extendedProps: { 
+                                        apiEvent: apiEvent,
+                                        dataOcorrencia: apiEvent.data_hora_inicio 
+                                    },
+                                    color: color
+                                };
+                            });
+                            successCallback(transformedData);
+                        })
+                        .catch(error => {
+                            console.error('Erro ao buscar agendamentos:', error);
+                            failureCallback(error);
                         });
-                        successCallback(transformedData);
-                    } catch (error) {
-                        console.error('Erro ao buscar agendamentos:', error);
-                        failureCallback(error);
-                    }
                 },
             });
 
             // --- FUNÇÕES DE INICIALIZAÇÃO ---
             async function carregarPacientes() {
                 try {
-                    const response = await secureFetch(`${API_URL}/pacientes`);
+                    const response = await fetch(`${API_URL}/pacientes`);
                     if (response.ok) {
                         listaDePacientesCache = await response.json();
                         console.log('Cache de pacientes carregado.');
@@ -1315,8 +1092,12 @@
                 selectAno.value = anoAtual;
             }
             
-            // Inicia o app verificando o login
-            checkLoginState();
+            // [MODIFICADO] Inicia o app
+            carregarPacientes().then(() => {
+                calendar.render();
+                popularFiltrosDashboard();
+            });
+            
             
             // --- Lógica de Navegação da Sidebar ---
             function showView(viewToShow, linkToActivate) {
@@ -1434,8 +1215,9 @@
                     };
                     
                     try {
-                        const response = await secureFetch(`${API_URL}/agendamentos/${agendamentoId}`, {
+                        const response = await fetch(`${API_URL}/agendamentos/${agendamentoId}`, {
                             method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(updateData)
                         });
                         if (response.ok) {
@@ -1447,9 +1229,7 @@
                         }
                     } catch (error) {
                         console.error('Erro de rede ao atualizar:', error);
-                        if (error.message !== "Não autorizado") {
-                            showErrorToast('Erro de conexão. A alteração será desfeita.');
-                        }
+                        showErrorToast('Erro de conexão. A alteração será desfeita.');
                         dropInfo.revert();
                     }
                 } else {
@@ -1465,8 +1245,9 @@
                     };
 
                     try {
-                        const response = await secureFetch(`${API_URL}/agendamentos/${agendamentoId}/mover_ocorrencia`, {
+                        const response = await fetch(`${API_URL}/agendamentos/${agendamentoId}/mover_ocorrencia`, {
                             method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(updateData)
                         });
                         if (response.ok) {
@@ -1478,9 +1259,7 @@
                         }
                     } catch (error) {
                         console.error('Erro de rede ao mover:', error);
-                        if (error.message !== "Não autorizado") {
-                            showErrorToast('Erro de conexão. A alteração será desfeita.');
-                        }
+                        showErrorToast('Erro de conexão. A alteração será desfeita.');
                         dropInfo.revert();
                     }
                 }
@@ -1501,8 +1280,9 @@
                 }
                 
                 try {
-                    const response = await secureFetch(url, { 
+                    const response = await fetch(url, { 
                         method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
                         body: body
                     });
                     if (response.ok) {
@@ -1530,8 +1310,9 @@
                 }
                 
                 try {
-                    const response = await secureFetch(url, { 
+                    const response = await fetch(url, { 
                         method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
                         body: body
                     });
                     if (response.ok) {
@@ -1549,18 +1330,17 @@
                 const texto = textoEvolucao.value;
                 if (!texto) { showErrorToast('O campo de evolução está vazio.'); return; }
                 
-                // [MODIFICADO] Pega o ID correto (pode ser o da ocorrência única)
-                let eventoClicado = calendar.getEventById(currentAgendamentoId);
-                if (!eventoClicado) {
-                    // Se não achou, pode ser um evento de repetição. Vamos pegar o ID da ocorrência.
-                    // Esta é uma lógica complexa, por agora vamos focar no ID principal que está no modal
-                    // (O check-in já cria um evento único, então isso deve funcionar)
-                }
-                const idRealParaSalvar = currentAgendamentoId; // Simplificação por enquanto
+                let idRealParaSalvar = currentAgendamentoId;
+                // Se for um evento de repetição, o check-in cria um novo evento.
+                // Precisamos encontrar o ID do evento "Presente" que acabamos de criar.
+                // Isso é complexo. Por agora, vamos simplificar:
+                // A API VAI REJEITAR se tentarmos salvar em uma regra (rrule != null).
+                // O check-in (que cria um evento único) é obrigatório primeiro.
 
                 try {
-                    const response = await secureFetch(`${API_URL}/agendamentos/${idRealParaSalvar}/evolucoes`, {
+                    const response = await fetch(`${API_URL}/agendamentos/${idRealParaSalvar}/evolucoes`, {
                         method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ texto_evolucao: texto })
                     });
                     if (response.ok) {
@@ -1574,13 +1354,12 @@
             };
 
             btnExcluirAgendamento.onclick = async () => {
-                // TODO: Adicionar lógica de "Excluir este" ou "Excluir todos"
                 if (!confirm(`Tem certeza que deseja EXCLUIR PERMANENTEMENTE este agendamento?\n\nPaciente: ${modalPacienteNome.textContent}\nIsso não pode ser desfeito.`)) {
                     return;
                 }
                 
                 try {
-                    const response = await secureFetch(`${API_URL}/agendamentos/${currentAgendamentoId}`, { 
+                    const response = await fetch(`${API_URL}/agendamentos/${currentAgendamentoId}`, { 
                         method: 'DELETE' 
                     });
                     
@@ -1594,9 +1373,7 @@
                     }
                 } catch (error) { 
                     console.error('Erro de rede ao excluir agendamento:', error); 
-                    if (error.message !== "Não autorizado") {
-                        showErrorToast('Erro de conexão ao tentar excluir o agendamento.');
-                    }
+                    showErrorToast('Erro de conexão ao tentar excluir o agendamento.');
                 }
             };
 
@@ -1689,8 +1466,9 @@
                 }
                 
                 try {
-                    const response = await secureFetch(url, {
+                    const response = await fetch(url, {
                         method: method,
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(dadosPaciente)
                     });
 
@@ -1720,9 +1498,7 @@
                     }
                 } catch (error) {
                     console.error('Erro de rede:', error);
-                    if (error.message !== "Não autorizado") {
-                        showErrorToast('Erro ao conectar com a API.');
-                    }
+                    showErrorToast('Erro ao conectar com a API.');
                 }
             };
 
@@ -1876,7 +1652,7 @@
                 loadingDashboard.style.display = 'block';
                 dashboardResultados.innerHTML = "";
                 try {
-                    const response = await secureFetch(`${API_URL}/dashboard/sessoes-por-mes?ano=${ano}&mes=${mes}`);
+                    const response = await fetch(`${API_URL}/dashboard/sessoes-por-mes?ano=${ano}&mes=${mes}`);
                     if (!response.ok) { throw new Error('Erro ao buscar dados.'); }
                     const dados = await response.json();
                     let tabelaHTML = '<table class="modal-table"><tr><th>Paciente</th><th>Total de Sessões</th></tr>';
@@ -1988,7 +1764,7 @@
                 }
 
                 try {
-                    const response = await secureFetch(`${API_URL}/pacientes/${pacienteId}`, {
+                    const response = await fetch(`${API_URL}/pacientes/${pacienteId}`, {
                         method: 'DELETE'
                     });
 
@@ -2004,9 +1780,7 @@
                     }
                 } catch (error) {
                     console.error('Erro de rede ao excluir:', error);
-                    if (error.message !== "Não autorizado") {
-                        showErrorToast('Erro de conexão ao tentar excluir.');
-                    }
+                    showErrorToast('Erro de conexão ao tentar excluir.');
                 }
             }
 
@@ -2024,7 +1798,7 @@
                 modalHistoricoContainer.style.display = 'flex';
                 
                 try {
-                    const response = await secureFetch(`${API_URL}/pacientes/${paciente.id}/evolucoes`);
+                    const response = await fetch(`${API_URL}/pacientes/${paciente.id}/evolucoes`);
                     if (!response.ok) {
                         throw new Error('Erro ao buscar histórico.');
                     }
