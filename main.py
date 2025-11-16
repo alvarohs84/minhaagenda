@@ -19,9 +19,9 @@ from jose import JWTError, jwt # Para tokens
 from email_validator import validate_email, EmailNotValidError # Para validar email
 
 # --- 1. CONFIGURAÇÃO DE SEGURANÇA (Tokens) ---
-SECRET_KEY = "sua_chave_secreta_muito_longa_e_dificil" # Mude isso!
+SECRET_KEY = "sua_chave_secreta_muito_longa_e_dificil" 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 # Token expira em 1 dia
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -344,10 +344,12 @@ def listar_agendamentos(start: datetime, end: datetime, db: Session = Depends(ge
     eventos_finais = []
     tz = dt.timezone.utc 
     
+    # [CORREÇÃO] Converte 'start' e 'end' (que vêm do frontend com fuso) para 'naive' (sem fuso)
     start_naive = start.replace(tzinfo=None)
     end_naive = end.replace(tzinfo=None)
     
     for evento in agendamentos_base:
+        # [CORREÇÃO] Converte as datas do BD (que têm fuso) para 'naive'
         evento_start_naive = evento.data_hora_inicio.replace(tzinfo=None)
         evento_end_naive = evento.data_hora_fim.replace(tzinfo=None)
 
@@ -365,10 +367,12 @@ def listar_agendamentos(start: datetime, end: datetime, db: Session = Depends(ge
                 excecoes_str = evento.exdates.split(',')
                 for ex_str in excecoes_str:
                     try:
+                        # Converte a string de exceção (que é UTC) para 'naive'
                         excecoes.append(datetime.fromisoformat(ex_str).replace(tzinfo=None))
                     except ValueError:
                         pass 
             
+            # [CORREÇÃO] Compara 'naive' com 'naive'
             limite_futuro_naive = datetime.utcnow() + relativedelta(years=2)
             
             if end_naive > limite_futuro_naive:
@@ -382,6 +386,7 @@ def listar_agendamentos(start: datetime, end: datetime, db: Session = Depends(ge
                 
                 fim_naive = inicio_naive + duracao
                 
+                # [CORREÇÃO] Adiciona o fuso horário UTC de volta antes de enviar
                 evento_virtual = Agendamento(
                     id=evento.id,
                     data_hora_inicio=inicio_naive.replace(tzinfo=tz),
