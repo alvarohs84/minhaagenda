@@ -46,7 +46,7 @@ class Usuario(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    
+
     pacientes = relationship("Paciente", back_populates="owner")
     agendamentos = relationship("Agendamento", back_populates="owner")
 
@@ -59,10 +59,10 @@ class Paciente(Base):
     sexo = Column(String, nullable=True)
     diagnostico_medico = Column(String, nullable=True)
     avaliacao = Column(Text, nullable=True) 
-    
+
     user_id = Column(Integer, ForeignKey('usuarios.id'), nullable=False)
     owner = relationship("Usuario", back_populates="pacientes")
-    
+
     agendamentos = relationship("Agendamento", back_populates="paciente", cascade="all, delete-orphan")
     evolucoes = relationship("Evolucao", back_populates="paciente", cascade="all, delete-orphan")
 
@@ -72,11 +72,11 @@ class Agendamento(Base):
     data_hora_inicio = Column(DateTime(timezone=True), nullable=False)
     data_hora_fim = Column(DateTime(timezone=True), nullable=False)
     status = Column(PyEnum('Agendado', 'Presente', 'Cancelado', name='status_agendamento'), default='Agendado')
-    
+
     paciente_id = Column(Integer, ForeignKey('pacientes.id', ondelete="CASCADE"), nullable=False)
     rrule = Column(String, nullable=True) 
     exdates = Column(Text, nullable=True) 
-    
+
     user_id = Column(Integer, ForeignKey('usuarios.id'), nullable=False)
     owner = relationship("Usuario", back_populates="agendamentos")
 
@@ -88,10 +88,10 @@ class Evolucao(Base):
     id = Column(Integer, primary_key=True, index=True)
     texto_evolucao = Column(Text, nullable=False)
     data_criacao = Column(DateTime(timezone=True), default=datetime.utcnow)
-    
+
     agendamento_id = Column(Integer, ForeignKey('agendamentos.id'), nullable=False)
     paciente_id = Column(Integer, ForeignKey('pacientes.id'), nullable=False)
-    
+
     user_id = Column(Integer, ForeignKey('usuarios.id'), nullable=False)
 
     agendamento = relationship("Agendamento", back_populates="evolucao")
@@ -156,14 +156,14 @@ class AgendamentoSchema(BaseModel):
     rrule: Optional[str] = None 
     exdates: Optional[str] = None 
     user_id: int
-    
+
     model_config = ConfigDict(from_attributes=True)
-    
+
 class OcorrenciaUpdate(BaseModel):
     data_original: datetime 
     novo_inicio: datetime
     novo_fim: datetime
-    
+
 class OcorrenciaStatus(BaseModel):
     data_ocorrencia: datetime
     novo_status: str
@@ -243,11 +243,11 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
         validate_email(user.email)
     except EmailNotValidError as e:
         raise HTTPException(status_code=400, detail=f"Email inválido: {e}")
-        
+
     db_user = db.query(Usuario).filter(Usuario.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email já registrado")
-    
+
     hashed_password = get_password_hash(user.password)
     db_user = Usuario(email=user.email, hashed_password=hashed_password)
     db.add(db_user)
@@ -282,7 +282,7 @@ async def read_users_me(current_user: Usuario = Depends(get_current_user)):
 @app.post("/pacientes", response_model=PacienteSchema, status_code=status.HTTP_201_CREATED)
 def criar_paciente(paciente: PacienteCreate, db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     data_nasc = datetime.combine(paciente.data_nascimento, datetime.min.time()) if paciente.data_nascimento else None
-    
+
     db_paciente = Paciente(
         **paciente.model_dump(),
         data_nascimento=data_nasc,
@@ -303,9 +303,9 @@ def atualizar_paciente(paciente_id: int, paciente: PacienteCreate, db: Session =
     db_paciente = db.query(Paciente).filter(Paciente.id == paciente_id, Paciente.user_id == current_user.id).first() 
     if db_paciente is None:
         raise HTTPException(status_code=404, detail="Paciente not found")
-    
+
     dados_paciente = paciente.model_dump(exclude_unset=True)
-    
+
     if 'data_nascimento' in dados_paciente:
         if dados_paciente['data_nascimento']:
             db_paciente.data_nascimento = datetime.combine(dados_paciente['data_nascimento'], datetime.min.time())
@@ -315,7 +315,7 @@ def atualizar_paciente(paciente_id: int, paciente: PacienteCreate, db: Session =
 
     for key, value in dados_paciente.items():
         setattr(db_paciente, key, value)
-    
+
     db.commit()
     db.refresh(db_paciente)
     return db_paciente
@@ -325,14 +325,14 @@ def deletar_paciente(paciente_id: int, db: Session = Depends(get_db), current_us
     db_paciente = db.query(Paciente).filter(Paciente.id == paciente_id, Paciente.user_id == current_user.id).first() 
     if db_paciente is None:
         raise HTTPException(status_code=404, detail="Paciente not found")
-    
+
     try:
         db.delete(db_paciente)
         db.commit()
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Erro ao deletar: Este paciente pode ter agendamentos. {e}")
-        
+
     return {"detail": "Paciente deletado com sucesso"}
 
 # --- Rotas de AGENDAMENTO ---
@@ -340,16 +340,14 @@ def deletar_paciente(paciente_id: int, db: Session = Depends(get_db), current_us
 @app.get("/agendamentos", response_model=List[AgendamentoSchema])
 def listar_agendamentos(start: datetime, end: datetime, db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     agendamentos_base = db.query(Agendamento).filter(Agendamento.user_id == current_user.id).all() 
-    
+
     eventos_finais = []
     tz = dt.timezone.utc 
-    
-    # [CORREÇÃO] Converte 'start' e 'end' (que vêm do frontend com fuso) para 'naive' (sem fuso)
+
     start_naive = start.replace(tzinfo=None)
     end_naive = end.replace(tzinfo=None)
-    
+
     for evento in agendamentos_base:
-        # [CORREÇÃO] Converte as datas do BD (que têm fuso) para 'naive'
         evento_start_naive = evento.data_hora_inicio.replace(tzinfo=None)
         evento_end_naive = evento.data_hora_fim.replace(tzinfo=None)
 
@@ -358,35 +356,32 @@ def listar_agendamentos(start: datetime, end: datetime, db: Session = Depends(ge
                 eventos_finais.append(evento)
         else:
             dtstart_naive = evento_start_naive
-            
+
             regra = rrulestr(evento.rrule, dtstart=dtstart_naive) 
             duracao = evento_end_naive - evento_start_naive
-            
+
             excecoes = []
             if evento.exdates:
                 excecoes_str = evento.exdates.split(',')
                 for ex_str in excecoes_str:
                     try:
-                        # Converte a string de exceção (que é UTC) para 'naive'
                         excecoes.append(datetime.fromisoformat(ex_str).replace(tzinfo=None))
                     except ValueError:
                         pass 
-            
-            # [CORREÇÃO] Compara 'naive' com 'naive'
+
             limite_futuro_naive = datetime.utcnow() + relativedelta(years=2)
-            
+
             if end_naive > limite_futuro_naive:
                 end_naive = limite_futuro_naive
 
             ocorrencias = regra.between(start_naive, end_naive, inc=True)
-            
+
             for inicio_naive in ocorrencias:
                 if inicio_naive in excecoes:
                     continue
-                
+
                 fim_naive = inicio_naive + duracao
-                
-                # [CORREÇÃO] Adiciona o fuso horário UTC de volta antes de enviar
+
                 evento_virtual = Agendamento(
                     id=evento.id,
                     data_hora_inicio=inicio_naive.replace(tzinfo=tz),
@@ -407,7 +402,7 @@ def criar_agendamento(agendamento: AgendamentoCreate, db: Session = Depends(get_
     db_paciente = db.query(Paciente).filter(Paciente.id == agendamento.paciente_id, Paciente.user_id == current_user.id).first()
     if db_paciente is None:
         raise HTTPException(status_code=404, detail="Paciente not found")
-        
+
     db_agendamento = Agendamento(
         paciente_id=agendamento.paciente_id,
         data_hora_inicio=agendamento.data_hora_inicio,
@@ -426,7 +421,7 @@ def atualizar_data_agendamento(agendamento_id: int, update_data: AgendamentoUpda
     db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id, Agendamento.user_id == current_user.id, Agendamento.rrule == None).first()
     if db_agendamento is None:
         raise HTTPException(status_code=404, detail="Agendamento não-recorrente não encontrado")
-    
+
     try:
         update_data_dict = update_data.model_dump(exclude_unset=True)
         for key, value in update_data_dict.items():
@@ -443,7 +438,7 @@ def deletar_agendamento(agendamento_id: int, db: Session = Depends(get_db), curr
     db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id, Agendamento.user_id == current_user.id).first()
     if db_agendamento is None:
         raise HTTPException(status_code=404, detail="Agendamento not found")
-        
+
     db.delete(db_agendamento)
     db.commit()
     return {"detail": "Agendamento deletado com sucesso"}
@@ -455,14 +450,14 @@ def mover_ocorrencia(agendamento_id: int, update: OcorrenciaUpdate, db: Session 
     regra_pai = db.query(Agendamento).filter(Agendamento.id == agendamento_id, Agendamento.user_id == current_user.id).first()
     if regra_pai is None or regra_pai.rrule is None:
         raise HTTPException(status_code=404, detail="Regra de agendamento não encontrada")
-        
+
     data_excecao_str = update.data_original.isoformat()
     if regra_pai.exdates:
         if data_excecao_str not in regra_pai.exdates:
             regra_pai.exdates += f",{data_excecao_str}"
     else:
         regra_pai.exdates = data_excecao_str
-    
+
     db.commit()
 
     novo_agendamento_unico = Agendamento(
@@ -476,7 +471,7 @@ def mover_ocorrencia(agendamento_id: int, update: OcorrenciaUpdate, db: Session 
     db.add(novo_agendamento_unico)
     db.commit()
     db.refresh(novo_agendamento_unico)
-    
+
     return novo_agendamento_unico
 
 @app.post("/agendamentos/{agendamento_id}/status_ocorrencia", response_model=AgendamentoSchema)
@@ -491,7 +486,7 @@ def status_ocorrencia(agendamento_id: int, update: OcorrenciaStatus, db: Session
             regra_pai.exdates += f",{data_excecao_str}"
     else:
         regra_pai.exdates = data_excecao_str
-    
+
     db.commit()
 
     duracao = regra_pai.data_hora_fim - regra_pai.data_hora_inicio
@@ -506,7 +501,7 @@ def status_ocorrencia(agendamento_id: int, update: OcorrenciaStatus, db: Session
     db.add(novo_agendamento_unico)
     db.commit()
     db.refresh(novo_agendamento_unico)
-    
+
     return novo_agendamento_unico
 
 
@@ -515,7 +510,7 @@ def fazer_checkin(agendamento_id: int, db: Session = Depends(get_db), current_us
     db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id, Agendamento.user_id == current_user.id, Agendamento.rrule == None).first()
     if db_agendamento is None:
         raise HTTPException(status_code=404, detail="Agendamento não-recorrente não encontrado")
-    
+
     db_agendamento.status = 'Presente'
     db.commit()
     db.refresh(db_agendamento)
@@ -526,7 +521,7 @@ def cancelar_atendimento(agendamento_id: int, db: Session = Depends(get_db), cur
     db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id, Agendamento.user_id == current_user.id, Agendamento.rrule == None).first()
     if db_agendamento is None:
         raise HTTPException(status_code=404, detail="Agendamento não-recorrente não encontrado")
-    
+
     db_agendamento.status = 'Cancelado'
     db.commit()
     db.refresh(db_agendamento)
@@ -539,10 +534,10 @@ def criar_evolucao(agendamento_id: int, evolucao: EvolucaoCreate, db: Session = 
     db_agendamento = db.query(Agendamento).filter(Agendamento.id == agendamento_id, Agendamento.user_id == current_user.id).first()
     if db_agendamento is None:
         raise HTTPException(status_code=404, detail="Agendamento not found")
-    
+
     if db_agendamento.rrule:
         raise HTTPException(status_code=400, detail="Não é possível adicionar evolução a uma regra. Faça o check-in primeiro.")
-        
+
     if db_agendamento.evolucao:
         raise HTTPException(status_code=400, detail="Este agendamento já possui uma evolução")
 
@@ -561,7 +556,7 @@ def listar_evolucoes_paciente(paciente_id: int, db: Session = Depends(get_db), c
     db_paciente = db.query(Paciente).filter(Paciente.id == paciente_id, Paciente.user_id == current_user.id).first()
     if db_paciente is None:
         raise HTTPException(status_code=404, detail="Paciente not found")
-        
+
     evolucoes = db.query(Evolucao).filter(Evolucao.paciente_id == paciente_id).all()
     return evolucoes
 
@@ -569,7 +564,7 @@ def listar_evolucoes_paciente(paciente_id: int, db: Session = Depends(get_db), c
 @app.get("/dashboard/sessoes-por-mes", response_model=List[DashboardSessao])
 def get_dashboard_sessoes(ano: int, mes: int, db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     from sqlalchemy import func, extract
-    
+
     resultados = db.query(
         Paciente.nome.label("nome_paciente"),
         func.count(Agendamento.id).label("total_sessoes")
@@ -585,7 +580,7 @@ def get_dashboard_sessoes(ano: int, mes: int, db: Session = Depends(get_db), cur
     ).order_by(
         func.count(Agendamento.id).desc()
     ).all()
-    
+
     return resultados
 
 # --- Rota Raiz (Opcional) ---
