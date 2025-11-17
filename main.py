@@ -1,5 +1,5 @@
 # --- main.py ---
-# [CORRIGIDO] Remove o argumento duplicado 'data_nascimento'
+# [VERSÃO FINAL SEM LOGIN] - Corrige todos os bugs
 
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -213,7 +213,7 @@ def deletar_paciente(paciente_id: int, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Erro ao deletar: Este paciente pode ter agendamentos. {e}")
             
-        return {"detail": "Paciente deletado com sucesso"}
+    return {"detail": "Paciente deletado com sucesso"}
 
 # --- Rotas de AGENDAMENTO ---
 
