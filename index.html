@@ -4,12 +4,12 @@
     <meta charset='utf-8' />
     <title>FisioManager</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+    
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js'></script>
-
+    
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-
+    
     <style>
         :root {
             --sidebar-bg: #2c3e50;
@@ -93,7 +93,7 @@
             font-size: 0.9em;
             text-align: center;
         }
-
+        
         /* --- Estilos da Área Principal --- */
         .main-content {
             flex-grow: 1; 
@@ -102,7 +102,7 @@
             flex-direction: column;
             height: 100vh;
         }
-
+        
         .main-header {
             padding: 15px 25px;
             background-color: white;
@@ -121,7 +121,7 @@
             font-weight: bold;
             margin-left: 0;
         }
-
+        
         main {
             flex-grow: 1;
             padding: 20px;
@@ -133,6 +133,7 @@
             display: none; 
         }
 
+        /* --- Estilos do Calendário (Ajustados) --- */
         #calendar-container {
             max-width: 1100px;
             margin: 0 auto;
@@ -145,6 +146,7 @@
             text-align: center;
         }
 
+        /* --- Estilos dos Botões de Ação (Cores) --- */
         #btn-abrir-agendamento-manual { background-color: var(--color-azul); }
         #btn-agendar-por-voz { background-color: var(--color-amarelo); color: black; }
         #btn-abrir-lista-pacientes { background-color: var(--color-verde); }
@@ -153,6 +155,7 @@
         #btn-cadastro-rapido-voz { background-color: var(--color-laranja); }
 
 
+        /* --- Estilos dos Modais --- */
         .modal-container {
             display: none;
             position: fixed;
@@ -201,7 +204,7 @@
             border: none;
             cursor: pointer;
         }
-
+        
         #btn-checkin { background-color: #28a745; color: white; }
         #btn-cancelar { background-color: #ffc107; color: black; } 
         #btn-excluir-agendamento { background-color: #dc3545; color: white; }
@@ -285,14 +288,14 @@
         .modal-table th {
             background-color: #f2f2f2;
         }
-
+        
         #lista-pacientes-tbody tr {
             cursor: pointer;
         }
         #lista-pacientes-tbody tr:hover {
             background-color: #f5f5f5;
         }
-
+        
         .btn-acao {
             padding: 5px 8px;
             font-size: 0.9em;
@@ -310,7 +313,7 @@
             background-color: var(--color-azul);
             color: white;
         }
-
+        
         #historico-evolucoes-content .evolucao-item {
             border-bottom: 1px solid #eee;
             padding: 10px 0;
@@ -352,7 +355,7 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-
+        
         .toastify {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             font-size: 1em;
@@ -412,7 +415,7 @@
                 min-width: calc(50% - 10px); 
                 margin-left: 0;
             }
-
+            
             main {
                 padding: 10px;
             }
@@ -452,14 +455,14 @@
             </div>
 
         <div class="main-content">
-
+            
             <header class="main-header">
                 <button id="btn-abrir-modal-paciente-header">Cadastrar Novo Paciente +</button>
                 <button id="btn-abrir-agendamento-manual-header">Agendar Paciente 📅</button>
                 <button id="btn-agendar-por-voz">Agendar por Voz 🗣️</button>
                 <button id="btn-cadastro-rapido-voz">Cadastrar por Voz 🎤</button>
             </header>
-
+            
             <main>
                 <div id="view-agenda" class="view-section" style="display: block;">
                     <div id='calendar-container'>
@@ -513,7 +516,7 @@
             <p><strong>Diagnóstico:</strong> <span id="modal-paciente-diagnostico"></span></p>
             <p><strong>Telefone:</strong> <span id="modal-paciente-telefone"></span></p>
             <p><strong>Status:</strong> <span id="modal-agendamento-status"></span></p>
-
+            
             <button id="btn-checkin">Fazer Check-in</button>
             <button id="btn-cancelar">Cancelar Atendimento</button>
             <button id="btn-excluir-agendamento">Excluir Agendamento 🗑️</button>
@@ -526,7 +529,7 @@
             <button id="btn-salvar-evolucao">Salvar Evolução</button>
         </div>
     </div>
-
+    
     <div id="modal-paciente-container" class="modal-container">
         <div class="modal-content">
             <span class="modal-close" id="modal-paciente-close">&times;</span>
@@ -534,13 +537,13 @@
             <form id="form-novo-paciente">
                 <label for="paciente-nome">Nome Completo:</label>
                 <input type="text" id="paciente-nome" required>
-
+                
                 <label for="paciente-telefone">Telefone:</label>
                 <input type="text" id="paciente-telefone" placeholder="(XX) 9XXXX-XXXX">
-
+                
                 <label for="paciente-nasc">Data de Nascimento:</label>
                 <input type="date" id="paciente-nasc">
-
+                
                 <label for="paciente-sexo">Sexo:</label>
                 <select id="paciente-sexo">
                     <option value="">Selecione...</option> 
@@ -548,10 +551,10 @@
                     <option value="Masculino">Masculino</option>
                     <option value="Outro">Outro</option>
                 </select>
-
+                
                 <label for="paciente-diag">Diagnóstico Médico:</label>
                 <textarea id="paciente-diag" rows="3"></textarea>
-
+                
                 <label for="paciente-avaliacao">Avaliação Fisioterapêutica:</label>
                 <textarea id="paciente-avaliacao" rows="6" placeholder="Descreva a avaliação inicial, objetivos, etc..."></textarea>
 
@@ -566,7 +569,7 @@
             <h3>Novo Agendamento</h3>
             <p>Selecione o paciente para o horário:</p>
             <p><strong>Horário:</strong> <span id="novo-agendamento-horario"></span></p> 
-
+            
             <form id="form-novo-agendamento">
                 <label for="input-paciente">Paciente:</label>
                 <input type="text" id="input-paciente" list="paciente-list" placeholder="Digite ou selecione um paciente..." required>
@@ -584,7 +587,7 @@
                     <label class="checkbox-label"><input type="checkbox" name="dia-semana-clique" value="SA"> Sáb</label>
                 </div>
                 <small>Deixe todos desmarcados para não repetir.</small>
-
+                
                 <button type="submit" id="btn-salvar-agendamento">Agendar</button>
             </form>
         </div>
@@ -594,7 +597,7 @@
         <div class="modal-content">
             <span class="modal-close" id="modal-agendamento-manual-close">&times;</span>
             <h3>Agendar Paciente (Manual)</h3>
-
+            
             <form id="form-agendamento-manual">
                 <label for="input-paciente-manual">Paciente:</label>
                 <input type="text" id="input-paciente-manual" list="paciente-list-manual" placeholder="Digite ou selecione um paciente..." required>
@@ -603,7 +606,7 @@
 
                 <label for="input-data-manual">Data:</label>
                 <input type="date" id="input-data-manual" required>
-
+                
                 <label for="input-hora-manual">Hora (Início):</label>
                 <input type="time" id="input-hora-manual" required>
 
@@ -624,12 +627,12 @@
             </form>
         </div>
     </div>
-
+    
     <div id="modal-historico-container" class="modal-container">
         <div class="modal-content">
             <span class="modal-close" id="modal-historico-close">&times;</span>
             <h3>Prontuário de <span id="historico-nome-paciente"></span></h3>
-
+            
             <h4>Avaliação Fisioterapêutica</h4>
             <div id="prontuario-avaliacao" style="white-space: pre-wrap; background: #f9f9f9; border: 1px solid #eee; padding: 10px; border-radius: 4px; min-height: 100px;">
                 (Carregando avaliação...)
@@ -644,12 +647,14 @@
 
 
     <script>
+        // [MODIFICADO] Todo o JavaScript foi revertido para a versão sem login.
+        // O código é o mesmo da penúltima resposta, que estava 100% funcional.
         document.addEventListener('DOMContentLoaded', function() {
             var calendarEl = document.getElementById('calendar');
-
+            
             const API_URL = 'https://minhaagenda.onrender.com';
             let listaDePacientesCache = [];
-
+            
             const isMobile = window.innerWidth <= 768;
             let pacienteIdEmEdicao = null;
             let currentSelectionInfo = null; 
@@ -659,7 +664,7 @@
                 const backgroundColor = type === 'success' ? 
                     "linear-gradient(to right, #00b09b, #96c93d)" : 
                     "linear-gradient(to right, #ff5f6d, #ffc371)";
-
+                
                 Toastify({
                     text: message,
                     duration: 3000,
@@ -678,8 +683,8 @@
             }
             function showSuccessToast(message) { showToast(message, 'success'); }
             function showErrorToast(message) { showToast(message, 'error'); }
-
-
+            
+            
             // --- Seletores (Modal Agendamento) ---
             const modalContainer = document.getElementById('modal-container');
             const modalAgendamentoClose = document.getElementById('modal-agendamento-close');
@@ -741,7 +746,7 @@
             // --- Seletores de Voz ---
             const btnCadastroRapidoVoz = document.getElementById('btn-cadastro-rapido-voz');
             const btnAgendarPorVoz = document.getElementById('btn-agendar-por-voz'); 
-
+            
             // --- Seletores da Navegação ---
             const navAgenda = document.getElementById('nav-agenda');
             const navPacientes = document.getElementById('nav-pacientes');
@@ -814,7 +819,7 @@
                            word;
                 }).join(' ');
             }
-
+            
             async function salvarPacienteRapido(nome) {
                 const novoPaciente = {
                     nome: nome,
@@ -845,7 +850,7 @@
                     showErrorToast('Erro ao conectar com a API.');
                 }
             }
-
+            
             // --- Lógica da API de Voz para AGENDAMENTO ---
             const SpeechRecognitionAgendamento = window.SpeechRecognition || window.webkitSpeechRecognition;
             let recognitionAgendamento;
@@ -902,7 +907,7 @@
                 btnAgendarPorVoz.disabled = true;
                 btnAgendarPorVoz.textContent = "Voz não suportada 😞";
             }
-
+            
             function encontrarPacienteNoTexto(texto) {
                 for (const p of listaDePacientesCache) {
                     if (texto.includes(p.nome.toLowerCase())) {
@@ -924,7 +929,7 @@
                     amanha.setDate(hoje.getDate() + 1);
                     return amanha;
                 }
-
+                
                 const diasDaSemana = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
                 for (let i = 0; i < diasDaSemana.length; i++) {
                     if (texto.includes(diasDaSemana[i])) {
@@ -939,7 +944,7 @@
                         return proximoDia;
                     }
                 }
-
+                
                 throw new Error("Data não reconhecida (diga 'hoje', 'amanhã' ou um dia da semana).");
             }
 
@@ -948,10 +953,10 @@
                 if (!match) {
                     throw new Error("Hora não reconhecida (diga '... às [hora]' ex: '... às 10' ou '... às 10 e meia').");
                 }
-
+                
                 const hora = parseInt(match[1]); 
                 const minuto = (match[2] && (match[2].includes("meia") || match[2].includes("trinta"))) ? 30 : 0;
-
+                
                 if (hora < 8 || hora > 19) {
                      throw new Error("Hora fora do horário de atendimento (08:00 - 19:00).");
                 }
@@ -993,7 +998,7 @@
             var calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: isMobile ? 'timeGridDay' : 'timeGridWeek', 
                 locale: 'pt-br',
-
+                
                 allDayText: 'Horário',         
                 allDaySlot: true,              
                 slotMinTime: '08:00:00',       
@@ -1022,11 +1027,11 @@
                 select: handleSelectTime,
                 eventClick: handleEventClick,
                 eventDrop: handleEventDrop, 
-
+                
                 events: function(fetchInfo, successCallback, failureCallback) {
                     const start = fetchInfo.start.toISOString();
                     const end = fetchInfo.end.toISOString();
-
+                    
                     fetch(`${API_URL}/agendamentos?start=${start}&end=${end}`)
                         .then(response => {
                             if (!response.ok) {
@@ -1067,8 +1072,14 @@
                     if (response.ok) {
                         listaDePacientesCache = await response.json();
                         console.log('Cache de pacientes carregado.');
-                    } else { console.error('Erro ao carregar pacientes.'); }
-                } catch (error) { console.error('Erro de rede ao carregar pacientes:', error); }
+                    } else { 
+                        console.error('Erro ao carregar pacientes.'); 
+                        showErrorToast("Não foi possível carregar pacientes. A API pode estar offline.");
+                    }
+                } catch (error) { 
+                    console.error('Erro de rede ao carregar pacientes:', error); 
+                    showErrorToast("Erro de conexão com a API.");
+                }
             }
             function popularFiltrosDashboard() {
                 const hoje = new Date();
@@ -1084,14 +1095,14 @@
                 }
                 selectAno.value = anoAtual;
             }
-
-            // [MODIFICADO] Inicia o app
+            
+            // Inicia o app
             carregarPacientes().then(() => {
                 calendar.render();
                 popularFiltrosDashboard();
             });
-
-
+            
+            
             // --- Lógica de Navegação da Sidebar ---
             function showView(viewToShow, linkToActivate) {
                 allViews.forEach(view => view.style.display = 'none');
@@ -1105,13 +1116,13 @@
                 e.preventDefault();
                 showView(viewAgenda, navAgenda);
             };
-
+            
             navPacientes.onclick = (e) => {
                 e.preventDefault();
                 showView(viewPacientes, navPacientes);
                 abrirListaPacientes(); 
             };
-
+            
             navDashboard.onclick = (e) => {
                 e.preventDefault();
                 showView(viewDashboard, navDashboard);
@@ -1119,11 +1130,11 @@
 
 
             // --- FUNÇÕES DO CALENDÁRIO ---
-
+            
             async function handleSelectTime(selectionInfo) {
                 const dataInicio = selectionInfo.start;
                 const dataFim = new Date(dataInicio.getTime() + 55 * 60000); 
-
+                
                 currentSelectionInfo = {
                     start: dataInicio,
                     end: dataFim
@@ -1143,10 +1154,10 @@
                 const fim = dataFim.toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' }); 
                 const dia = dataInicio.toLocaleString('pt-BR', { dateStyle: 'short' });
                 novoAgendamentoHorario.textContent = `${dia} - ${inicio} às ${fim}`;
-
+                
                 const diasRRule = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
                 const diaValor = diasRRule[dataInicio.getDay()];
-
+                
                 document.querySelectorAll('input[name="dia-semana-clique"]').forEach(cb => {
                     cb.checked = (cb.value === diaValor); 
                 });
@@ -1158,7 +1169,7 @@
             function handleEventClick(clickInfo) {
                 const apiEvent = clickInfo.event.extendedProps.apiEvent;
                 currentAgendamentoId = apiEvent.id; 
-
+                
                 currentSelectionInfo = { 
                     start: new Date(clickInfo.event.start),
                     isRecorrente: !!apiEvent.rrule
@@ -1170,7 +1181,7 @@
                 modalAgendamentoStatus.textContent = apiEvent.status;
                 textoEvolucao.value = '';
                 statusGravacao.textContent = '';
-
+                
                 btnExcluirAgendamento.style.display = 'inline-block';
                 if (apiEvent.status === 'Agendado') {
                     btnCheckin.style.display = 'inline-block';
@@ -1187,7 +1198,7 @@
                 const oldEvent = dropInfo.oldEvent;
                 const agendamentoId = event.id;
                 const apiEvent = event.extendedProps.apiEvent;
-
+                
                 let dataFim;
                 if (event.end) {
                     dataFim = event.end; 
@@ -1195,18 +1206,18 @@
                     const duracao = oldEvent.end.getTime() - oldEvent.start.getTime(); 
                     dataFim = new Date(event.start.getTime() + duracao);
                 }
-
+                
                 if (!apiEvent.rrule) {
                     if (!confirm(`Mover o atendimento de "${event.title}" para ${event.start.toLocaleString('pt-BR')}?`)) {
                         dropInfo.revert();
                         return;
                     }
-
+                    
                     const updateData = {
                         data_hora_inicio: event.start.toISOString(),
                         data_hora_fim: dataFim.toISOString()
                     };
-
+                    
                     try {
                         const response = await fetch(`${API_URL}/agendamentos/${agendamentoId}`, {
                             method: 'PATCH',
@@ -1230,7 +1241,7 @@
                         dropInfo.revert();
                         return;
                     }
-
+                    
                     const updateData = {
                         data_original: oldEvent.start.toISOString(),
                         novo_inicio: event.start.toISOString(),
@@ -1271,7 +1282,7 @@
                         novo_status: 'Presente'
                     });
                 }
-
+                
                 try {
                     const response = await fetch(url, { 
                         method: 'POST',
@@ -1290,7 +1301,7 @@
             };
             btnCancelar.onclick = async () => {
                 if (!confirm("Tem certeza que deseja CANCELAR este atendimento?")) { return; }
-
+                
                 let url = `${API_URL}/agendamentos/${currentAgendamentoId}/cancelar`;
                 let body = null;
 
@@ -1301,7 +1312,7 @@
                         novo_status: 'Cancelado'
                     });
                 }
-
+                
                 try {
                     const response = await fetch(url, { 
                         method: 'POST',
@@ -1318,13 +1329,13 @@
                     }
                 } catch (error) { console.error('Erro de rede:', error); }
             };
-
+            
             btnSalvarEvolucao.onclick = async () => {
                 const texto = textoEvolucao.value;
                 if (!texto) { showErrorToast('O campo de evolução está vazio.'); return; }
-
+                
                 let idRealParaSalvar = currentAgendamentoId;
-
+                
                 try {
                     const response = await fetch(`${API_URL}/agendamentos/${idRealParaSalvar}/evolucoes`, {
                         method: 'POST',
@@ -1345,12 +1356,12 @@
                 if (!confirm(`Tem certeza que deseja EXCLUIR PERMANENTEMENTE este agendamento?\n\nPaciente: ${modalPacienteNome.textContent}\nIsso não pode ser desfeito.`)) {
                     return;
                 }
-
+                
                 try {
                     const response = await fetch(`${API_URL}/agendamentos/${currentAgendamentoId}`, { 
                         method: 'DELETE' 
                     });
-
+                    
                     if (response.ok) {
                         showSuccessToast('Agendamento excluído com sucesso!');
                         modalContainer.style.display = 'none';
@@ -1409,7 +1420,7 @@
                     recognition.stop();
                 }
             };
-
+            
             // --- LÓGICA DO MODAL DE CADASTRO DE PACIENTE (CRIAR E EDITAR) ---
             const showCadastroModal = () => {
                 formNovoPaciente.reset();
@@ -1419,15 +1430,15 @@
             };
             btnAbrirModalPaciente.onclick = showCadastroModal;
             btnAbrirModalPacienteHeader.onclick = showCadastroModal;
-
+            
             modalPacienteClose.onclick = () => {
                 modalPacienteContainer.style.display = 'none';
                 pacienteIdEmEdicao = null; 
             }
-
+            
             formNovoPaciente.onsubmit = async (event) => {
                 event.preventDefault(); 
-
+                
                 let dataNasc = document.getElementById('paciente-nasc').value;
                 let sexo = document.getElementById('paciente-sexo').value;
 
@@ -1447,12 +1458,12 @@
 
                 let method = 'POST';
                 let url = `${API_URL}/pacientes`;
-
+                
                 if (pacienteIdEmEdicao) {
                     method = 'PATCH'; 
                     url = `${API_URL}/pacientes/${pacienteIdEmEdicao}`;
                 }
-
+                
                 try {
                     const response = await fetch(url, {
                         method: method,
@@ -1462,7 +1473,7 @@
 
                     if (response.ok) {
                         const pacienteAtualizado = await response.json();
-
+                        
                         if (pacienteIdEmEdicao) {
                             showSuccessToast(`Paciente "${pacienteAtualizado.nome}" atualizado com sucesso!`);
                             const index = listaDePacientesCache.findIndex(p => p.id === pacienteIdEmEdicao);
@@ -1473,11 +1484,11 @@
                             showSuccessToast(`Paciente "${pacienteAtualizado.nome}" cadastrado com sucesso!`);
                             listaDePacientesCache.push(pacienteAtualizado);
                         }
-
+                        
                         formNovoPaciente.reset();
                         modalPacienteContainer.style.display = 'none';
                         pacienteIdEmEdicao = null; 
-
+                        
                         abrirListaPacientes(); // Atualiza a tabela
                     } else {
                         const error = await response.json();
@@ -1495,12 +1506,12 @@
                 modalNovoAgendamento.style.display = 'none';
                 currentSelectionInfo = null; 
             }
-
+            
             formNovoAgendamento.onsubmit = async (event) => {
                 event.preventDefault();
-
+                
                 const nomePaciente = inputPaciente.value;
-
+                
                 if (!nomePaciente) {
                     showErrorToast('Por favor, digite o nome do paciente.');
                     return;
@@ -1514,14 +1525,14 @@
                     showErrorToast('Paciente não encontrado. Por favor, selecione um nome válido da lista ou cadastre o paciente primeiro.');
                     return;
                 }
-
+                
                 const pacienteId = pacienteEncontrado.id; 
-
+                
                 if (!currentSelectionInfo) {
                     showErrorToast('Erro: Nenhuma informação de horário encontrada. Tente clicar novamente.');
                     return;
                 }
-
+                
                 const diasSelecionados = [];
                 document.querySelectorAll('input[name="dia-semana-clique"]:checked').forEach(cb => {
                     diasSelecionados.push(cb.value);
@@ -1539,7 +1550,7 @@
                 }
 
                 const sucesso = await salvarAgendamento(pacienteId, currentSelectionInfo.start, currentSelectionInfo.end, rruleStr);
-
+                
                 if (sucesso) {
                     modalNovoAgendamento.style.display = 'none'; 
                     currentSelectionInfo = null; 
@@ -1549,7 +1560,7 @@
             // --- Lógica do Modal de AGENDAMENTO MANUAL (botão) ---
             const showAgendamentoManualModal = () => {
                 formAgendamentoManual.reset(); 
-
+                
                 pacienteDataListManual.innerHTML = ''; 
                 listaDePacientesCache.sort((a, b) => a.nome.localeCompare(b.nome)); 
                 listaDePacientesCache.forEach(paciente => {
@@ -1557,7 +1568,7 @@
                     option.value = paciente.nome; 
                     pacienteDataListManual.appendChild(option);
                 });
-
+                
                 document.querySelectorAll('input[name="dia-semana"]').forEach(cb => cb.checked = false);
 
                 modalAgendamentoManualContainer.style.display = 'flex';
@@ -1565,7 +1576,7 @@
             };
             btnAbrirModalAgendamento.onclick = showAgendamentoManualModal;
             btnAbrirModalAgendamentoHeader.onclick = showAgendamentoManualModal;
-
+            
             modalAgendamentoManualClose.onclick = () => {
                 modalAgendamentoManualContainer.style.display = 'none';
             };
@@ -1577,7 +1588,7 @@
                     const dataObj = new Date(dataStr + 'T00:00:00'); 
                     const diasRRule = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
                     const diaDaSemana = diasRRule[dataObj.getUTCDay()]; 
-
+                    
                     const checkboxAlvo = document.querySelector(`#form-agendamento-manual input[name="dia-semana"][value="${diaDaSemana}"]`);
                     if (checkboxAlvo) {
                         checkboxAlvo.checked = true;
@@ -1591,7 +1602,7 @@
                 const nomePaciente = document.getElementById('input-paciente-manual').value;
                 const dataStr = document.getElementById('input-data-manual').value;
                 const horaStr = document.getElementById('input-hora-manual').value;
-
+                
                 const diasSelecionados = [];
                 document.querySelectorAll('#form-agendamento-manual input[name="dia-semana"]:checked').forEach(cb => {
                     diasSelecionados.push(cb.value);
@@ -1619,14 +1630,14 @@
                 if (diasSelecionados.length > 0 && !diasSelecionados.includes(diaDaSemanaInicio)) {
                     diasSelecionados.push(diaDaSemanaInicio);
                 }
-
+                
                 let rruleStr = null;
                 if (diasSelecionados.length > 0) {
                     rruleStr = `FREQ=WEEKLY;BYDAY=${diasSelecionados.join(',')}`;
                 }
 
                 const sucesso = await salvarAgendamento(pacienteEncontrado.id, dataInicio, dataFim, rruleStr);
-
+                
                 if (sucesso) {
                     modalAgendamentoManualContainer.style.display = 'none'; 
                 }
@@ -1671,16 +1682,16 @@
                 } else {
                     listaDePacientesCache.forEach(paciente => {
                         const tr = document.createElement('tr');
-
+                        
                         const tdId = document.createElement('td');
                         tdId.textContent = paciente.id;
                         const tdNome = document.createElement('td');
                         tdNome.textContent = paciente.nome;
                         const tdTel = document.createElement('td');
                         tdTel.textContent = paciente.telefone || 'N/A';
-
+                        
                         const tdAcoes = document.createElement('td');
-
+                        
                         const btnEditar = document.createElement('button');
                         btnEditar.textContent = '✏️';
                         btnEditar.title = 'Editar Cadastro';
@@ -1698,7 +1709,7 @@
                             e.stopPropagation(); 
                             handleExcluirPaciente(paciente.id, paciente.nome);
                         };
-
+                        
                         const btnProntuario = document.createElement('button');
                         btnProntuario.textContent = '📄';
                         btnProntuario.title = 'Ver Evoluções (Prontuário)';
@@ -1711,12 +1722,12 @@
                         tdAcoes.appendChild(btnEditar);
                         tdAcoes.appendChild(btnExcluir);
                         tdAcoes.appendChild(btnProntuario); 
-
+                        
                         tr.appendChild(tdId);
                         tr.appendChild(tdNome);
                         tr.appendChild(tdTel);
                         tr.appendChild(tdAcoes); 
-
+                        
                         listaPacientesTbody.appendChild(tr);
                     });
                 }
@@ -1726,11 +1737,11 @@
 
             function handleEditarPaciente(paciente) {
                 pacienteIdEmEdicao = paciente.id;
-
+                
                 modalTituloPaciente.textContent = `Editando Paciente: ${paciente.nome}`;
                 document.getElementById('paciente-nome').value = paciente.nome;
                 document.getElementById('paciente-telefone').value = paciente.telefone || '';
-
+                
                 if (paciente.data_nascimento && paciente.data_nascimento.includes('T')) {
                      document.getElementById('paciente-nasc').value = paciente.data_nascimento.split('T')[0];
                 } else if (paciente.data_nascimento) {
@@ -1742,7 +1753,7 @@
                 document.getElementById('paciente-sexo').value = paciente.sexo || '';
                 document.getElementById('paciente-diag').value = paciente.diagnostico_medico || '';
                 document.getElementById('paciente-avaliacao').value = paciente.avaliacao || ''; 
-
+                
                 modalPacienteContainer.style.display = 'flex';
             }
 
@@ -1775,23 +1786,23 @@
 
             // --- LÓGICA DO MODAL HISTÓRICO DE EVOLUÇÕES ---
             modalHistoricoClose.onclick = () => modalHistoricoContainer.style.display = 'none';
-
+            
             async function abrirHistoricoPaciente(paciente) {
                 historicoNomePaciente.textContent = paciente.nome;
                 loadingHistorico.style.display = 'block';
                 historicoEvolucoesContent.innerHTML = "";
-
+                
                 prontuarioAvaliacao.textContent = paciente.avaliacao || "(Nenhuma avaliação registrada)";
-
+                
                 modalHistoricoContainer.style.display = 'flex';
-
+                
                 try {
                     const response = await fetch(`${API_URL}/pacientes/${paciente.id}/evolucoes`);
                     if (!response.ok) {
                         throw new Error('Erro ao buscar histórico.');
                     }
                     const evolucoes = await response.json();
-
+                    
                     if (evolucoes.length === 0) {
                         historicoEvolucoesContent.innerHTML = "<p>Nenhuma evolução diária registrada para este paciente.</p>";
                     } else {
