@@ -20,10 +20,10 @@
             --header-border: #bdc3c7;
             --color-verde: #198754;
             --color-roxo: #6f42c1;
-            --color-azul-claro: #0dcaf0;
-            --color-laranja: #fd7e14;
-            --color-amarelo: #ffc107;
-            --color-azul: #0d6efd;
+            --color-azul-claro: #0dcaf0; /* Mantido para referência */
+            --color-laranja: #fd7e14; /* Mantido para referência */
+            --color-amarelo: #ffc107; /* Mantido para referência */
+            --color-azul: #0d6efd; /* COR PRINCIPAL DOS BOTÕES */
             --color-vermelho: #dc3545;
         }
 
@@ -133,7 +133,6 @@
             display: none; 
         }
 
-        /* --- Estilos do Calendário (Ajustados) --- */
         #calendar-container {
             max-width: 1100px;
             margin: 0 auto;
@@ -146,13 +145,31 @@
             text-align: center;
         }
 
-        /* --- Estilos dos Botões de Ação (Cores) --- */
-        #btn-abrir-agendamento-manual { background-color: var(--color-azul); }
-        #btn-agendar-por-voz { background-color: var(--color-amarelo); color: black; }
-        #btn-abrir-lista-pacientes { background-color: var(--color-verde); }
-        #btn-abrir-dashboard { background-color: var(--color-roxo); }
-        #btn-abrir-modal-paciente { background-color: var(--color-azul-claro); color: black; }
-        #btn-cadastro-rapido-voz { background-color: var(--color-laranja); }
+        /* --- [CORRIGIDO] Estilos dos Botões de Ação (Cores) --- */
+        #btn-abrir-agendamento-manual,
+        #btn-abrir-agendamento-manual-header { 
+            background-color: var(--color-azul); 
+            color: white;
+        }
+        #btn-agendar-por-voz { 
+            background-color: var(--color-azul); 
+            color: white; 
+        }
+        #btn-abrir-modal-paciente,
+        #btn-abrir-modal-paciente-header { 
+            background-color: var(--color-azul); 
+            color: white; 
+        }
+        #btn-cadastro-rapido-voz { 
+            background-color: var(--color-azul); 
+            color: white;
+        }
+        
+        /* Links da Sidebar mantêm cores separadas */
+        #nav-pacientes:hover { background-color: rgba(25, 135, 84, 0.5); }
+        #nav-pacientes.active { background-color: var(--color-verde); }
+        #nav-dashboard:hover { background-color: rgba(111, 66, 193, 0.5); }
+        #nav-dashboard.active { background-color: var(--color-roxo); }
 
 
         /* --- Estilos dos Modais --- */
@@ -437,7 +454,7 @@
     </style>
 </head>
 <body>
-
+    
     <div id="app-container" style="display: flex;">
         <div class="sidebar">
             <div class="sidebar-logo">
@@ -647,7 +664,7 @@
 
 
     <script>
-        // [MODIFICADO] Todo o JavaScript foi revertido para a versão sem login.
+        // Este é o JavaScript COMPLETO. Ele remove o login e corrige o bug do fuso horário.
         document.addEventListener('DOMContentLoaded', function() {
             var calendarEl = document.getElementById('calendar');
             
