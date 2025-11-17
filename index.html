@@ -20,9 +20,9 @@
             --header-border: #bdc3c7;
             --color-verde: #198754;
             --color-roxo: #6f42c1;
-            --color-azul-claro: #0dcaf0; /* Mantido para referência */
-            --color-laranja: #fd7e14; /* Mantido para referência */
-            --color-amarelo: #ffc107; /* Mantido para referência */
+            --color-azul-claro: #0dcaf0; 
+            --color-laranja: #fd7e14; 
+            --color-amarelo: #ffc107; 
             --color-azul: #0d6efd; /* COR PRINCIPAL DOS BOTÕES */
             --color-vermelho: #dc3545;
         }
@@ -33,7 +33,16 @@
             padding: 0;
             display: flex; 
             height: 100vh;
+            width: 100vw; /* [CORREÇÃO] Garante largura total */
             overflow: hidden; 
+        }
+        
+        /* [CORREÇÃO] Layout principal visível por padrão */
+        #app-container {
+            display: flex;
+            flex-direction: row;
+            height: 100%;
+            width: 100%;
         }
 
         /* --- Estilos do Menu Lateral (Sidebar) --- */
@@ -45,6 +54,7 @@
             flex-direction: column;
             padding: 20px;
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            flex-shrink: 0; /* Impede que a sidebar encolha */
         }
         .sidebar-logo {
             text-align: center;
@@ -101,6 +111,7 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
+            overflow: hidden; 
         }
         
         .main-header {
@@ -110,6 +121,7 @@
             display: flex;
             justify-content: flex-end; 
             gap: 10px;
+            flex-shrink: 0; 
         }
         .main-header button {
             font-size: 0.9em;
@@ -126,17 +138,24 @@
             flex-grow: 1;
             padding: 20px;
             overflow-y: auto; 
-            height: calc(100vh - 70px); 
+            height: calc(100vh - 70px); /* Altura dinâmica */
+            box-sizing: border-box; 
         }
 
         .view-section {
             display: none; 
+            height: 100%; 
+            box-sizing: border-box;
+        }
+        #view-agenda {
+            display: block; /* Mostra a agenda por padrão */
         }
 
         /* --- Estilos do Calendário (Ajustados) --- */
         #calendar-container {
             max-width: 1100px;
             margin: 0 auto;
+            height: 100%; /* Faz o calendário preencher o #view-agenda */
         }
         .fc-event {
             cursor: pointer;
@@ -144,6 +163,9 @@
         .fc-timegrid-axis-header .fc-scrollgrid-shrink-cushion {
             font-weight: bold;
             text-align: center;
+        }
+        #calendar {
+            height: 100%; /* Faz o calendário preencher o #calendar-container */
         }
 
         /* --- [CORRIGIDO] Estilos dos Botões de Ação (Cores) --- */
@@ -456,7 +478,7 @@
 </head>
 <body>
     
-    <div id="app-container" style="display: flex;">
+    <div id="app-container">
         <div class="sidebar">
             <div class="sidebar-logo">
                 <img src="FisioManager.png" alt="FisioManager Logo">
@@ -665,7 +687,7 @@
 
 
     <script>
-        // [MODIFICADO] Todo o JavaScript foi revertido para a versão sem login.
+        // Este é o JavaScript COMPLETO.
         document.addEventListener('DOMContentLoaded', function() {
             var calendarEl = document.getElementById('calendar');
             
